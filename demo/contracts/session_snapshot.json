@@ -8,13 +8,7 @@
     "policy_id": "candidate-v2"
   },
   "last_committed_checkpoint": "c6",
-  "open_issues": [
-    {
-      "issue_id": "axle-orientation-unverified",
-      "since_checkpoint": "c5",
-      "description": "Front axle orientation not visible."
-    }
-  ],
+  "open_issues": [],
   "restart": {
     "before": {
       "process": "run-1 (stopped after mock-c3)",

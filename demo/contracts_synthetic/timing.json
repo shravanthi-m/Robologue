@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_kind": "synthetic-demo",
+  "recordings": {
+    "rec-SYN": {
+      "video_path": null,
+      "fps": 1,
+      "frame_offset": 0,
+      "duration_s": 5
+    }
+  }
+}

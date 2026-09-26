@@ -107,10 +107,12 @@ class ReportTests(unittest.TestCase):
         page, *_ = build(**inputs())
         lanes = {lane["issue_id"]: lane for lane in payload(page)["arms"]["candidate"]["issues"]}
         wheel = lanes["wheel-connection-unverified"]
-        self.assertIn(145.0, wheel["carried"])
+        self.assertIn(147.0, wheel["carried"])  # c3 checks the unrelated axle-assembly component
         self.assertTrue(wheel["resolved"])
         self.assertEqual(wheel["resolved_at"], "c6")
-        self.assertFalse(lanes["axle-orientation-unverified"]["resolved"])
+        # The real footage's final frame shows both connections seated, so this one honestly
+        # resolves too rather than staying open just to demonstrate the case.
+        self.assertTrue(lanes["second-wheel-seating-unverified"]["resolved"])
 
     def test_resolution_without_evidence_keeps_issue_open(self):
         data = inputs()

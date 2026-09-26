@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "policy_id": "checklist-v2",
+  "parent_policy_id": "baseline-v1",
+  "status": "accepted",
+  "checklist": [
+    "Before declaring component-0 correct, require explicit visual evidence that its connection is present (the component is fully attached). An occluded or unseen attachment is insufficient_evidence, not correct."
+  ],
+  "supporting_dev_case_ids": [],
+  "template_id": "require-explicit-connection-evidence-v1",
+  "rationale": "1 false-correct development case(s) on component-0; rule requires explicit connection evidence.",
+  "source_kind": "synthetic-demo"
+}

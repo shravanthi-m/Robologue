@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "source_kind": "synthetic-demo",
+  "recording_ids": [
+    "rec-SYN"
+  ],
+  "baseline_policy_id": "baseline-v1",
+  "candidate_policy_id": "checklist-v2",
+  "decision": "accepted",
+  "reason": "False-corrects fell 2 -> 0 State accuracy held 0.800 -> 0.800 Inference budget respected (10 <= 24 calls)",
+  "scored": 10,
+  "excluded": 0,
+  "baseline": {
+    "state_accuracy": 0.8,
+    "false_correct": 2,
+    "incorrect_recall": 0.0,
+    "abstentions": 0,
+    "model_calls": 10,
+    "latency_ms": 50.0
+  },
+  "candidate": {
+    "state_accuracy": 0.8,
+    "false_correct": 0,
+    "incorrect_recall": 0.0,
+    "abstentions": 2,
+    "model_calls": 10,
+    "latency_ms": 50.0
+  }
+}

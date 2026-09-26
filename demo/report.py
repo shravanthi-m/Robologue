@@ -6,7 +6,7 @@ import math
 from pathlib import Path
 
 SCHEMA_VERSION = 1
-SOURCE_KINDS = ("mock", "rgb_vlm", "released_predictions")
+SOURCE_KINDS = ("mock", "rgb_vlm", "released_predictions", "synthetic-demo")
 VERDICTS = ("correct", "incorrect", "not_completed", "insufficient_evidence")
 ARMS = ("baseline", "candidate")
 DECISIONS = ("accepted", "rejected", "inconclusive", "no_proposal")

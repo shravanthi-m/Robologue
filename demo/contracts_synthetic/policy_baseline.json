@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "source_kind": "synthetic-demo",
+  "policy_id": "baseline-v1",
+  "parent_policy_id": null,
+  "status": "accepted",
+  "checklist": [],
+  "supporting_dev_case_ids": []
+}
