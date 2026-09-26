@@ -386,6 +386,22 @@ with 2 false-corrects, the candidate holds 0.800 with 0 false-corrects, and the
 promotion gate accepts with reasons. Point the command at real label files and
 real verifier verdicts for the actual experiment.
 
+## Close the loop: run with the promoted policy
+
+A promoted policy changes runtime behavior. Pass the frozen policy (a bare
+record, or an `evaluate --output` report holding one) to `replay`:
+
+```bash
+python3 -m robologue.cli replay examples/observations.jsonl --session demo \
+  --db work/memory.sqlite --policy work/eval-report.json
+```
+
+Only an `accepted` policy may run; anything else is rejected. Its checklist
+rides on every `request_verification` decision as `verification_checklist`,
+telling the verifier what evidence to require before an issue clears. This is
+the self-improvement loop running: score, propose, promote, load, verify
+against the new checklist.
+
 ## Observation contract
 
 One JSON object per line:
@@ -471,7 +487,7 @@ harness contribution and risks the event's prohibited-project categories.
 
 ## Code map
 
-- `robologue/harness.py`: validated replay, idempotency, issue memory, stateless baseline.
+- `robologue/harness.py`: validated replay, idempotency, issue memory, stateless baseline; loads an accepted policy and attaches its checklist to verification requests.
 - `robologue/store.py`: local SQLite or Atlas single-document checkpoints.
 - `robologue/captaincook.py`: evaluator-only annotation conversion.
 - `robologue/industreal_labels.py`: IndustReal PSR label adapter producing evaluator-only records.

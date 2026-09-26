@@ -28,7 +28,10 @@ def validate(event):
             raise ValueError("issue values must be nonempty strings")
 
 
-def advance(state, event, mode="memory"):
+def advance(state, event, mode="memory", policy=None):
+    """Advance one event. An accepted policy's checklist rides along on every
+    verification request, so a promoted rule changes what evidence the
+    verifier is told to require. No policy: no checklist key."""
     validate(event)
     if mode not in ("memory", "stateless"):
         raise ValueError("Unknown mode")
@@ -62,16 +65,19 @@ def advance(state, event, mode="memory"):
     decision = {"event_id": event["event_id"], "timestamp": event["timestamp"],
                 "action": "request_verification" if state["open_issues"] else "continue_observing",
                 "open_issues": state["open_issues"], "completed_steps": state["completed_steps"]}
+    if state["open_issues"] and policy:
+        decision["verification_checklist"] = list(policy["checklist"])
+        decision["policy_id"] = policy["policy_id"]
     return state, decision
 
 
-def replay(store, session, events, mode="memory", limit=None):
+def replay(store, session, events, mode="memory", limit=None, policy=None):
     state = store.load(session)
     count = 0
     for event in events:
         if limit is not None and count >= limit:
             break
-        state, decision = advance(state, event, mode)
+        state, decision = advance(state, event, mode, policy)
         if decision.get("status") != "already_processed":
             # Event receipt and its memory effects are persisted together.
             store.save(session, state)

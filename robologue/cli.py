@@ -6,7 +6,12 @@ from .captaincook import evaluation_records
 from .evaluate import score
 from .harness import replay
 from .industreal_labels import reference_records
-from .policies import decide_promotion, finalize, propose_from_false_corrects
+from .policies import (
+    decide_promotion,
+    finalize,
+    propose_from_false_corrects,
+    validate_policy,
+)
 from .store import AtlasStore, SQLiteStore
 
 
@@ -81,6 +86,21 @@ def run_evaluate(args):
         print(f"Wrote JSON report to {args.output}")
 
 
+def load_policy(path):
+    """Load the immutable policy a run starts with. Accepts a bare policy
+    record or an evaluate --output report holding a frozen policy. Only an
+    accepted policy may run."""
+    doc = json.loads(Path(path).read_text())
+    record = doc.get("frozen_policy", doc)
+    if not isinstance(record, dict):
+        raise ValueError(f"{path}: no frozen policy found")
+    validate_policy(record)
+    if record["status"] != "accepted":
+        raise ValueError(f"{path}: only an accepted policy may run "
+                         f"(status is {record['status']!r})")
+    return record
+
+
 def main():
     parser = argparse.ArgumentParser(description="Robologue: synthetic replay, label preparation, and evaluation")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -91,6 +111,9 @@ def main():
     run.add_argument("--db", default="work/memory.sqlite")
     run.add_argument("--mode", choices=["memory", "stateless"], default="memory")
     run.add_argument("--limit", type=int, help="Stop after this many NEW events; rerun to resume")
+    run.add_argument("--policy", type=Path,
+                     help="Frozen policy record, or an evaluate --output report "
+                          "containing one; its checklist rides on verification requests")
     labels = commands.add_parser("prepare-labels")
     labels.add_argument("annotations", type=Path, help="Official error_annotations.json")
     labels.add_argument("--output", type=Path, required=True)
@@ -123,9 +146,14 @@ def main():
         return
     if args.limit is not None and args.limit < 1:
         parser.error("--limit must be at least 1")
+    policy = load_policy(args.policy) if args.policy else None
+    if policy:
+        print(f"Loaded accepted policy {policy['policy_id']} "
+              f"({len(policy['checklist'])} checklist rule(s)).")
     store = AtlasStore() if args.backend == "atlas" else SQLiteStore(args.db)
     try:
-        for decision in replay(store, args.session, read_events(args.events), args.mode, args.limit):
+        for decision in replay(store, args.session, read_events(args.events), args.mode,
+                               args.limit, policy):
             print(json.dumps(decision))
     finally:
         store.close()

@@ -67,3 +67,55 @@ class MemoryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PolicyLoadingTests(unittest.TestCase):
+    def _policy(self, **overrides):
+        base = {"schema_version": 1, "policy_id": "checklist-v2",
+                "parent_policy_id": "baseline-v1", "status": "accepted",
+                "checklist": ["Require explicit connection evidence."],
+                "supporting_dev_case_ids": ["c1"]}
+        base.update(overrides)
+        return base
+
+    def test_checklist_rides_on_verification_requests(self):
+        policy = self._policy()
+        state, decision = advance(None, event(1, issue={"id": "x", "description": "Unverified"}),
+                                  policy=policy)
+        self.assertEqual(decision["action"], "request_verification")
+        self.assertEqual(decision["verification_checklist"], policy["checklist"])
+        self.assertEqual(decision["policy_id"], "checklist-v2")
+
+    def test_no_checklist_without_policy(self):
+        _, decision = advance(None, event(1, issue={"id": "x", "description": "Unverified"}))
+        self.assertNotIn("verification_checklist", decision)
+        self.assertNotIn("policy_id", decision)
+
+    def test_no_checklist_when_nothing_to_verify(self):
+        policy = self._policy()
+        _, decision = advance(None, event(1), policy=policy)
+        self.assertEqual(decision["action"], "continue_observing")
+        self.assertNotIn("verification_checklist", decision)
+
+    def test_load_policy_accepts_report_and_record(self):
+        import json
+        from robologue.cli import load_policy
+        with tempfile.TemporaryDirectory() as directory:
+            record_path = Path(directory) / "policy.json"
+            record_path.write_text(json.dumps(self._policy()))
+            self.assertEqual(load_policy(record_path)["policy_id"], "checklist-v2")
+            report_path = Path(directory) / "report.json"
+            report_path.write_text(json.dumps({"frozen_policy": self._policy()}))
+            self.assertEqual(load_policy(report_path)["policy_id"], "checklist-v2")
+
+    def test_load_policy_rejects_non_accepted(self):
+        import json
+        from robologue.cli import load_policy
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "policy.json"
+            path.write_text(json.dumps(self._policy(status="candidate")))
+            with self.assertRaises(ValueError):
+                load_policy(path)
+            path.write_text(json.dumps({"frozen_policy": None}))
+            with self.assertRaises(ValueError):
+                load_policy(path)
