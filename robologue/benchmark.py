@@ -63,11 +63,31 @@ def write_jsonl(path, records):
 
 
 def run_benchmark(
-    root, output, store, client, *, run_id="native-eval-v1", runner=run_recording
+    root,
+    output,
+    store,
+    client,
+    *,
+    run_id="native-eval-v1",
+    runner=run_recording,
+    runtime_dir=None,
+    components_file=None,
+    reference_image=None,
+    development_only=False,
 ):
     root, output = Path(root), Path(output)
     output.mkdir(parents=True, exist_ok=True)
-    components = json.loads((root / "components.json").read_text())["components"]
+    catalog = json.loads(Path(components_file or root / "components.json").read_text())
+    components = catalog["components"]
+    if isinstance(components, list):
+        if (
+            catalog.get("source_kind") != "public_component_geometry"
+            or catalog.get("evaluation_only") is not False
+        ):
+            raise ValueError("Require an explicitly public geometry catalog")
+        components = {
+            v["component_id"]: v["name"] + ": " + v["description"] for v in components
+        }
     records = sorted(p.name for p in (root / "native").iterdir() if p.is_dir())
     if len(records) != 9 or any(r[:2] not in SPLITS.values() for r in records):
         raise ValueError(
@@ -96,6 +116,9 @@ def run_benchmark(
         "version": PROTOCOL_VERSION,
         "groups": groups,
         "components": components,
+        "public_reference_sha256": (
+            digest_file(reference_image) if reference_image else None
+        ),
         "reference_file_sha256": {
             r: digest_file(root / "native" / r / "PSR_labels_raw.csv") for r in records
         },
@@ -123,10 +146,11 @@ def run_benchmark(
                 components,
                 maps[rec],
                 client,
-                output / "runtime",
+                Path(runtime_dir) if runtime_dir else output / "runtime",
                 mode=mode,
                 policy=policy,
                 allow_candidate=candidate,
+                reference_image=reference_image,
             )
             if not result["complete"]:
                 raise ValueError("Incomplete run cannot be evaluated")
@@ -140,6 +164,17 @@ def run_benchmark(
 
     # Do not inspect heldout labels for policy construction or promotion.
     dev = phase("development", groups["development"], "memory")
+    if development_only:
+        result = {
+            "status": "development_complete",
+            "protocol": protocol,
+            "runs": {
+                "development": extended_score(dev, references(groups["development"]))
+            },
+            "budget": client.budget.summary(),
+        }
+        write_json(output / "development-report.json", result)
+        return result
     validation = phase("validation", groups["validation"], "memory")
     candidate = propose_from_false_corrects(
         dev,
@@ -237,7 +272,11 @@ def run_benchmark(
         "limitations": [
             "Only 16 incorrect reference states across the supplied native recordings.",
             "All nine native recordings come from official test_p1; internal development/validation must not be presented as official heldout results.",
-            "Public component descriptions provide no CAD or correct-assembly reference images.",
+            (
+                "Public CAD key identifies expected parts but cannot prove current installation or reveal occluded fasteners."
+                if reference_image
+                else "No public CAD reference supplied; terse component descriptions may be ambiguous."
+            ),
             "All 86 MP4s are decoded and audited; state accuracy covers the nine recordings with supplied PSR labels.",
             "Action labels are audited for identity/ranges; this run measures component state verification, not action recognition.",
             "Budget ledger counts all dispatched attempts, including failures; per-verdict model_calls can undercount crash-before-commit attempts.",

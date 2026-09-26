@@ -10,9 +10,11 @@ and promoted-policy support, and adds the actual component verifier and dataset 
 
 **Completed:** archive preparation, full video decode audit, native RGB/video
 alignment, offline integration tests, and live Atlas persistence/restart checks.
-**Pending:** real model inference and measured visual accuracy. The supplied
-Person 2 environment file contains Atlas credentials but no `OPENROUTER_API_KEY`.
-Paid model calls so far: **0**. Authorized experiment cap: **$10**.
+**In progress:** measured real-video accuracy under a shared persistent **$10** cap.
+Credentials are loaded only from the ignored Person 2 environment file. The
+repository includes an attributed public CAD component key and bounded geometry
+definitions. Offline tests now total **136**, all passing. Completed metrics
+will be published after development, paired validation and frozen heldout runs.
 
 ## Pipeline and ownership
 
@@ -50,9 +52,12 @@ requires a separate experiment with appropriate training data.
 - In memory mode, the previous three model-generated checkpoint summaries.
 - An immutable accepted checklist policy, if validation promoted one.
 
+The separate public CAD key identifies expected parts and attachment locations.
+It is explicitly labeled as a reference, distinct from the current recording frame.
 No recording/trial names, file paths, action annotations, PSR state values,
 hidden error descriptions, depth or object-detection annotations enter model prompts.
-Images are encoded as JPEG, with a maximum dimension of 768 pixels.
+Images are encoded as JPEG, with a maximum dimension of 1280 pixels. Up to three recording frames and one
+separately captioned public reference image are sent to the verifier.
 Each checkpoint inspects its current frame and up to two earlier frames in the
 preceding 50-frame window. Sparse frames cannot establish continuous motion.
 
@@ -126,9 +131,20 @@ Then run:
 ```bash
 .venv/bin/python -m robologue.cli run-dataset data/industreal \
   --backend atlas --env-file ../person2/.env \
-  --output work/evaluation --run-id native-eval-v1 \
-  --max-usd 10 --max-calls 250
+  --output work/final-evaluation --run-id grounded-eval-v3 \
+  --budget-db work/evaluation/model-budget.sqlite \
+  --runtime-dir work/evaluation/runtime \
+  --components-file examples/public_reference/public_components.json \
+  --reference-image examples/public_reference/component_key.jpg \
+  --max-usd 10 --max-calls 500
 ```
+
+Use `--development-only` to pause before validation and heldout inference.
+Use the same command, paths and output directory to resume. Retain the shared
+budget ledger. When choosing another output directory, run `audit-media` into
+its `media` subdirectory or reuse the verified media audit there.
+The published local command assumes `work/final-evaluation/media` points to
+the completed `work/evaluation/media` audit.
 
 Use the same command and output directory to resume. Each run pins model,
 policy, component catalog, frame registration and complete time-map hash.
@@ -140,10 +156,15 @@ Use `--backend local` for SQLite with the same interfaces.
 The runner reserves $0.04 before every dispatch in a persistent SQLite ledger.
 Unknown charges and failed transport attempts retain the reservation.
 Reported charges settle reservations; an unexpectedly higher charge locks future
-dispatch. Requests have bounded input, at most three images, at most 2,000 output
-tokens, a 60-second timeout, and provider price ceilings of $0.50 prompt /
-$3 completion per million tokens. No automatic paid retry occurs.
-The call cap is 250 and the experiment cap cannot exceed $10.
+dispatch. Requests have bounded input, at most four images, at most 2,000 output
+tokens, a 60-second model timeout, and provider price ceilings of $0.50 prompt /
+$3 completion per million tokens. No automatic paid retry occurs. TLS/HTTP read failures are sanitized and retain
+unknown charge reservations; billed invalid responses retain their settled cost.
+Atlas uses finite 20-second connection and 30-second selection/socket timeouts.
+The default call cap is 250, with an explicit audited extension up to 500 attempts
+for exploratory and final runs sharing the same ledger. The dollar cap remains
+$10 and never increases when the attempt cap is extended. Unknown charges still
+reserve $0.04, so the dollar guard stops dispatch independently of attempt count.
 
 The ledger must be retained across restarts; deleting it or choosing another
 output directory starts another budget. A missing vision key prevents inference
@@ -196,8 +217,11 @@ interval is not evidence from 682 independent trials.
 All 86 MP4s are decoded and audited. Component-state accuracy will cover the nine
 native recordings with provided PSR labels. The 9,273 action-label rows are audited
 for identity and frame ranges; action-recognition accuracy is not measured by this
-component-state verifier. Public component descriptions supply no CAD or example
-of a correctly assembled component, which may lead to frequent abstentions.
+component-state verifier. Public geometry from the official IndustReal overview is packaged in
+`examples/public_reference/` with its Apache-2.0 license, exact provenance and
+crop notice. Only the component-key diagram is included; binary state tables and
+recording labels are excluded. Occlusion and small attachment details still
+require abstention when current evidence is inadequate.
 
 Depth, spatial tracking, JEPA training, Hermes training, robot execution and an
 interactive replay product are future work. Existing recording observations and

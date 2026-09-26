@@ -4,14 +4,15 @@ Date: September 26, 2026. Branch: `codex/integrated-video-evaluation`.
 
 ## Result status
 
-**95 offline tests passed. All 86 MP4s fully decoded. All nine native recordings
+**136 offline tests passed. All 86 MP4s fully decoded. All nine native recordings
 passed sampled RGB/video alignment. Live Atlas restart checks passed for all 62
 checkpoint packets.**
 
-**Visual accuracy has not been measured:** `OPENROUTER_API_KEY` is absent.
-There have been zero paid model calls and $0 model spending. The authorized
-upper cap is $10. Mocked HTTP/observations validate contracts and recovery; their
-verdicts are never reported as real perception accuracy.
+**Real visual evaluation is in progress.** No completed benchmark accuracy is
+claimed yet. The ignored environment now contains the supplied vision credential.
+All exploratory/final attempts share a persistent $10 ledger. Mocked observations
+remain contract fixtures only. Current spending snapshot is recorded in the
+machine-readable audit; failed and uncertain-charge attempts are included.
 
 Machine-readable evidence: [audit-results.json](audit-results.json).
 Implementation, run commands and frozen protocol: [INTEGRATION.md](INTEGRATION.md).
@@ -78,7 +79,8 @@ paired-cohort promotion, and freezing selection before heldout inference.
 
 ## Actual model inputs and outputs when inference is enabled
 
-Input: at most three past/current RGB images, public component names, numeric frame
+Input: at most three past/current RGB images, the public CAD component key and
+bounded geometry descriptions, numeric frame
 IDs, neutral observations, and up to three earlier model-generated summaries.
 No hidden state values or trial/file names are sent to the model.
 

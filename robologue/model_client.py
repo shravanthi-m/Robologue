@@ -5,6 +5,8 @@ import io
 import json
 import math
 import os
+import ssl
+import http.client
 import time
 import urllib.error
 import urllib.request
@@ -16,9 +18,9 @@ from .perception.video import json_key
 
 ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_MODEL = "google/gemini-2.5-flash"
-CLIENT_VERSION = "bounded-json-v1"
+CLIENT_VERSION = "bounded-json-v2-native1280"
 MAX_TEXT_BYTES = 16000
-MAX_IMAGE_TOKENS = 4096  # conservative allowance/image at <=768x768
+MAX_IMAGE_TOKENS = 4096  # conservative allowance/image at <=1280x1280
 CALL_RESERVATION = 0.04
 PROMPT_PRICE_CEILING = 0.5  # USD per million tokens
 COMPLETION_PRICE_CEILING = 3.0
@@ -32,8 +34,8 @@ class CallBudget:
             or not 0 < max_usd <= 10
         ):
             raise ValueError("Budget must be >0 and <= the authorized $10 cap")
-        if type(max_calls) is not int or not 1 <= max_calls <= 250:
-            raise ValueError("Model call cap must be 1-250")
+        if type(max_calls) is not int or not 1 <= max_calls <= 500:
+            raise ValueError("Model call cap must be 1-500")
         self.store = SQLiteStore(path)
         self.session = "model-budget"
         self.config = {
@@ -127,6 +129,35 @@ class CallBudget:
             "failed_calls": sum(a["status"] == "failed" for a in attempts),
         }
 
+    def mark_failed(self, identity, kind):
+        """Keep settled charges when a billed response cannot be consumed."""
+        state = self.store.load(self.session)
+        entry = next(a for a in state["attempts"] if a["attempt_id"] == identity)
+        revision = state["revision"]
+        entry["status"] = "failed"
+        entry["failure_kind"] = kind
+        self._save(state, revision)
+
+    def extend_call_limit(self, max_calls):
+        """Explicitly extend attempt count while retaining the dollar cap and charges."""
+        if (
+            type(max_calls) is not int
+            or not self.config["max_calls"] < max_calls <= 500
+        ):
+            raise ValueError("Require a larger call limit, at most 500")
+        state = self.store.load(self.session)
+        revision = state["revision"]
+        state.setdefault("limit_changes", []).append(
+            {
+                "previous": self.config["max_calls"],
+                "new": max_calls,
+                "dollar_cap_unchanged": self.config["max_usd"],
+            }
+        )
+        self.config = dict(self.config, max_calls=max_calls)
+        state["config"] = self.config
+        self._save(state, revision)
+
     def close(self):
         self.store.close()
 
@@ -137,7 +168,7 @@ def image_part(path):
     with Image.open(path) as source:
         source.load()
         image = source.convert("RGB")
-        image.thumbnail((768, 768))
+        image.thumbnail((1280, 1280))
         data = io.BytesIO()
         image.save(data, format="JPEG", quality=85)
     return {
@@ -150,12 +181,16 @@ def image_part(path):
 
 
 class OpenRouterClient:
+    version = CLIENT_VERSION
+
     def __init__(self, budget=None, *, api_key=None, timeout=60):
         self.budget = budget
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
         self.timeout = timeout
 
-    def chat(self, model, system, context, images=(), *, max_tokens=2000):
+    def chat(
+        self, model, system, context, images=(), *, max_tokens=2000, image_labels=None
+    ):
         if not self.api_key:
             raise ValueError("OPENROUTER_API_KEY is required; no request made")
         if model != DEFAULT_MODEL:
@@ -165,11 +200,20 @@ class OpenRouterClient:
         text = json.dumps(context, sort_keys=True, allow_nan=False)
         if (
             len((system + text).encode()) > MAX_TEXT_BYTES
-            or len(images) > 3
+            or len(images) > 4
             or not 1 <= max_tokens <= 2000
         ):
             raise ValueError("Request exceeds bounded text/image/output limits")
-        content = [{"type": "text", "text": text}] + [image_part(p) for p in images]
+        if image_labels is not None and (
+            len(image_labels) != len(images)
+            or any(not isinstance(s, str) or len(s) > 160 for s in image_labels)
+        ):
+            raise ValueError("Invalid bounded image labels")
+        content = [{"type": "text", "text": text}]
+        for index, path in enumerate(images):
+            if image_labels is not None:
+                content.append({"type": "text", "text": image_labels[index]})
+            content.append(image_part(path))
         payload = {
             "model": model,
             "temperature": 0,
@@ -200,9 +244,11 @@ class OpenRouterClient:
             },
         )
         started = time.monotonic()
+        stage = "transport"
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
                 result = json.load(response)
+            stage = "response_schema"
             if not isinstance(result, dict):
                 raise ValueError("Provider response must be an object")
             if result.get("error"):
@@ -213,9 +259,19 @@ class OpenRouterClient:
             if self.budget:
                 self.budget.finish(permit, usage)
             choice = result["choices"][0]
+            if not isinstance(choice, dict):
+                raise ValueError("Provider choice must be an object")
+            stage = "completion_" + (
+                choice.get("finish_reason")
+                if choice.get("finish_reason")
+                in ("stop", "length", "error", "content_filter")
+                else "unknown"
+            )
             if choice.get("finish_reason") not in ("stop", None):
                 raise ValueError("Model response was incomplete")
-            value = json.loads(choice["message"]["content"])
+            content = choice["message"]["content"]
+            stage = "empty_content" if not content else "invalid_json"
+            value = json.loads(content)
             return value, {
                 "provider": "openrouter",
                 "model_returned": result.get("model", model),
@@ -232,6 +288,9 @@ class OpenRouterClient:
             ) from None
         except (
             urllib.error.URLError,
+            ssl.SSLError,
+            http.client.HTTPException,
+            ConnectionError,
             TimeoutError,
             KeyError,
             IndexError,
@@ -241,10 +300,7 @@ class OpenRouterClient:
         ):
             # A response may have settled already; do not replace known cost.
             if self.budget:
-                state = self.budget.store.load(self.budget.session)
-                entry = next(a for a in state["attempts"] if a["attempt_id"] == permit)
-                if entry["status"] == "reserved":
-                    self.budget.finish(permit, status="failed")
+                self.budget.mark_failed(permit, stage)
             raise ValueError(
-                "Provider request failed or returned invalid JSON; no automatic retry"
+                f"Provider request failed ({stage}); no automatic retry"
             ) from None

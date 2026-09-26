@@ -4,7 +4,7 @@
   "base_commit": "c0b489c",
   "person1_commit": "a7f900d",
   "person2_commit": "d1f5eac",
-  "unit_integration_tests_passed": 95,
+  "unit_integration_tests_passed": 136,
   "media_videos_fully_decoded": 86,
   "media_videos_total": 86,
   "native_recordings": 9,
@@ -227,7 +227,7 @@
     "paid_model_calls": 0,
     "model_spend_usd": 0,
     "source_kind": "mock",
-    "visual_accuracy": "NOT MEASURED: API key absent; mock observations are contract fixtures only",
+    "visual_accuracy": "Not measured by mock contract audit; real model evaluation is separate.",
     "action_intervals_checked": 9273,
     "action_intervals_out_of_video_range": 1,
     "range_errors": [
@@ -329,8 +329,17 @@
     "atlas_stale_writer_rejected": true
   },
   "real_visual_accuracy": null,
-  "vision_inference_status": "Pending OPENROUTER_API_KEY",
-  "paid_model_calls": 0,
-  "model_spend_usd": 0,
-  "authorized_spend_cap_usd": 10
+  "vision_inference_status": "In progress: final public-geometry setup; no completed benchmark metrics yet",
+  "paid_model_calls": 78,
+  "model_spend_usd": 0.185511,
+  "authorized_spend_cap_usd": 10,
+  "budget_snapshot": {
+    "max_usd": 10.0,
+    "max_calls": 500,
+    "dispatched_calls": 78,
+    "accounted_usd": 0.185511,
+    "reported_cost_usd": 0.145511,
+    "uncertain_charge_calls": 1,
+    "failed_calls": 4
+  }
 }

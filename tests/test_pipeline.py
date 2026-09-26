@@ -152,7 +152,9 @@ class FakeVision:
         self.budget = budget
         self.contexts = []
 
-    def chat(self, model, system, context, images=(), max_tokens=2000):
+    def chat(
+        self, model, system, context, images=(), max_tokens=2000, image_labels=None
+    ):
         self.contexts.append(copy.deepcopy(context))
         permit = self.budget.reserve(str(len(self.contexts)))
         self.budget.finish(permit, {"cost": 0.001})

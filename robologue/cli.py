@@ -186,6 +186,27 @@ def main():
     benchmark.add_argument("--run-id", default="native-eval-v1")
     benchmark.add_argument("--max-usd", type=float, default=10)
     benchmark.add_argument("--max-calls", type=int, default=250)
+    benchmark.add_argument(
+        "--budget-db",
+        type=Path,
+        help="Share one spending ledger across exploratory and final runs",
+    )
+    benchmark.add_argument(
+        "--runtime-dir", type=Path, help="Share content-addressed neutral RGB cache"
+    )
+    benchmark.add_argument(
+        "--components-file", type=Path, help="Public component geometry catalog"
+    )
+    benchmark.add_argument(
+        "--reference-image",
+        type=Path,
+        help="Public CAD component key; never a labelled recording",
+    )
+    benchmark.add_argument(
+        "--development-only",
+        action="store_true",
+        help="Pause after development; validation/heldout inference remain untouched",
+    )
     args = parser.parse_args()
     if args.command == "prepare-dataset":
         from .dataset import prepare
@@ -222,7 +243,7 @@ def main():
         if not os.getenv("OPENROUTER_API_KEY"):
             parser.error("OPENROUTER_API_KEY required; no model request dispatched")
         budget = CallBudget(
-            args.output / "model-budget.sqlite",
+            args.budget_db or args.output / "model-budget.sqlite",
             max_usd=args.max_usd,
             max_calls=args.max_calls,
         )
@@ -234,9 +255,16 @@ def main():
                 store,
                 OpenRouterClient(budget),
                 run_id=args.run_id,
+                runtime_dir=args.runtime_dir,
+                components_file=args.components_file,
+                reference_image=args.reference_image,
+                development_only=args.development_only,
             )
-            _print_report("Memory baseline", report["runs"]["memory_baseline"])
-            _print_report("Stateless", report["runs"]["stateless"])
+            if report["status"] == "development_complete":
+                _print_report("Development", report["runs"]["development"])
+            else:
+                _print_report("Memory baseline", report["runs"]["memory_baseline"])
+                _print_report("Stateless", report["runs"]["stateless"])
             print(json.dumps(report["budget"]))
         finally:
             store.close()

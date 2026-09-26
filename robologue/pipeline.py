@@ -53,6 +53,7 @@ def run_recording(
     inspect_fn=get_evidence,
     verify_fn=verify,
     model=DEFAULT_MODEL,
+    reference_image=None,
 ):
     from pathlib import Path
 
@@ -113,6 +114,16 @@ def run_recording(
         "mapping_id": time_map["mapping_id"],
         "time_map_hash": json_key(time_map),
     }
+    from .verifier import PROMPT
+    from .perception.inspect import PROMPT as INSPECTION_PROMPT
+    from .perception.video import digest_file
+
+    config.update(
+        verifier_prompt_hash=json_key(PROMPT),
+        inspection_prompt_hash=json_key(INSPECTION_PROMPT),
+        reference_image_hash=digest_file(reference_image) if reference_image else None,
+        client_version=getattr(client, "version", "bounded-json-v1"),
+    )
     state = store.load(session)
     if state is None:
         state = {
@@ -167,7 +178,14 @@ def run_recording(
         provider_failed = False
         try:
             answer, meta = verify_fn(
-                packet, components, memory, client, root, model=model, policy=policy
+                packet,
+                components,
+                memory,
+                client,
+                root,
+                model=model,
+                policy=policy,
+                reference_image=reference_image,
             )
         except ValueError:
             provider_failed = True

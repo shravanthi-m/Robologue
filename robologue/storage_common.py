@@ -149,8 +149,8 @@ class MongoBackend:
             raise BackendUnavailable("Install the Atlas extra: pip install -e '.[atlas]'") from None
         self.client = None
         try:
-            self.client = MongoClient(uri, serverSelectionTimeoutMS=8000,
-                                      connectTimeoutMS=8000, socketTimeoutMS=8000,
+            self.client = MongoClient(uri, serverSelectionTimeoutMS=30000,
+                                      connectTimeoutMS=20000, socketTimeoutMS=30000,
                                       w="majority", retryWrites=True)
             self.db = self.client[db_name]
             self.backend_name = f"atlas:{db_name}"

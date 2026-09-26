@@ -7,8 +7,9 @@
 This branch connects real RGB inspection, durable Atlas memory, a component
 verifier, and the hidden-label evaluator. Run `robologue run-dataset` for the
 budgeted workflow. See [implementation and commands](docs/INTEGRATION.md) and
-[audit results](docs/AUDIT_RESULTS.md). Real visual accuracy remains pending
-the vision API key; media and persistence checks are complete.
+[audit results](docs/AUDIT_RESULTS.md). The public CAD key grounds component identities. Real inference is underway;
+completed benchmark metrics will be published after the frozen evaluation.
+Media and live Atlas persistence checks are complete.
 
 
 A hackathon starter for a persistent procedural-memory harness, evaluated on
