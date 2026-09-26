@@ -303,6 +303,38 @@ trusted by the starter and need evidence validation in the real system.
 Local checkpoints live in `work/memory.sqlite`. To rerun from scratch, choose a
 new session name. Use a different session for every recording, mode, and experiment.
 
+## Decision-point replay player (IndustReal harness)
+
+One static HTML page that replays a recording, pauses at each checkpoint, and shows
+what the verifier saw, remembered, recalled and decided, using saved records only.
+It does not call a model or read labels. Standard library only. Full plan:
+[demo/PLAN.md](demo/PLAN.md).
+
+```bash
+python -m demo.demo --fixtures demo/contracts --out work/player.html
+python -m demo.demo --evaluation rejected   # or accepted | inconclusive | no_proposal
+# Point at real team outputs instead of fixtures:
+python -m demo.demo --verdicts-candidate run/verdicts.jsonl --events run/issue_events.jsonl \
+  --snapshot run/session.json --evaluation-file run/evaluation.json --timing run/timing.json
+```
+
+- **Frame → time** comes only from `timing.json`. Each recording sets either
+  `fps` (+ `frame_offset`) or a `frame_map` of frame → seconds. A recording
+  missing from the file is shown as an error, and no default FPS is ever assumed.
+- **MOCK badge:** shown whenever any loaded record has `source_kind: "mock"`.
+  The bundled `demo/contracts/` fixtures are all mock and are not IndustReal results.
+- **Media:** `video_path` and `clip_path` are relative to the output HTML; the CLI
+  copies `<fixtures>/media/` next to it. A missing file shows a labelled MOCK placeholder.
+  The fixture's main video (`demo/contracts/media/main.mp4`, 184.5 s, constant 10 fps,
+  848×480) is a recorded toy-car assembly clip. The checkpoints, observations and verdicts
+  placed on it are hand-written mock records, not model output.
+- Recalled past failures are limited to the development split and never come from
+  the replayed recording. Other cases are refused and listed as notices.
+- Invalid records, rejected/inconclusive/no-proposal evaluations and missing files
+  render as visible errors or results. They never crash the page or show as success.
+- Font: Red Hat Display (SIL Open Font License, `demo/assets/OFL.txt`) is embedded
+  in the page so it renders offline.
+
 ## Use the hackathon Atlas Sandbox
 
 ```bash
@@ -514,35 +546,4 @@ hackathon. No third-party application implementation or dataset is vendored here
 Clearly distinguish external models, libraries, and data from the harness your
 team builds during the event. Do not present existing research results as ours.
 
-## Decision-point replay player (IndustReal harness)
-
-One static HTML page that replays a recording, pauses at each checkpoint, and shows
-what the verifier saw, remembered, recalled and decided, using saved records only.
-It does not call a model or read labels. Standard library only. Full plan:
-[demo/PLAN.md](demo/PLAN.md).
-
-```bash
-python -m demo.demo --fixtures demo/contracts --out work/player.html
-python -m demo.demo --evaluation rejected   # or accepted | inconclusive | no_proposal
-# Point at real team outputs instead of fixtures:
-python -m demo.demo --verdicts-candidate run/verdicts.jsonl --events run/issue_events.jsonl \
-  --snapshot run/session.json --evaluation-file run/evaluation.json --timing run/timing.json
-```
-
-- **Frame → time** comes only from `timing.json`. Each recording sets either
-  `fps` (+ `frame_offset`) or a `frame_map` of frame → seconds. A recording
-  missing from the file is shown as an error, and no default FPS is ever assumed.
-- **MOCK badge:** shown whenever any loaded record has `source_kind: "mock"`.
-  The bundled `demo/contracts/` fixtures are all mock and are not IndustReal results.
-- **Media:** `video_path` and `clip_path` are relative to the output HTML; the CLI
-  copies `<fixtures>/media/` next to it. A missing file shows a labelled MOCK placeholder.
-  The fixture's main video (`demo/contracts/media/main.mp4`, 184.5 s, constant 10 fps,
-  848×480) is a recorded toy-car assembly clip. The checkpoints, observations and verdicts
-  placed on it are hand-written mock records, not model output.
-- Recalled past failures are limited to the development split and never come from
-  the replayed recording. Other cases are refused and listed as notices.
-- Invalid records, rejected/inconclusive/no-proposal evaluations and missing files
-  render as visible errors or results. They never crash the page or show as success.
-- Font: Red Hat Display (SIL Open Font License, `demo/assets/OFL.txt`) is embedded
-  in the page so it renders offline.
 

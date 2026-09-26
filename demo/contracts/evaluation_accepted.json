@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "source_kind": "mock",
+  "recording_ids": ["mock-val-recording"],
+  "baseline_policy_id": "baseline-v1",
+  "candidate_policy_id": "candidate-v2",
+  "decision": "accepted",
+  "reason": "False-correct count fell from 2 to 1 with equal state accuracy (0.67); within the inference budget.",
+  "scored": 6,
+  "excluded": 1,
+  "baseline": {"state_accuracy": 0.67, "false_correct": 2, "incorrect_recall": 0.5, "abstentions": 0, "model_calls": 6, "latency_ms": 4100},
+  "candidate": {"state_accuracy": 0.67, "false_correct": 1, "incorrect_recall": 1.0, "abstentions": 1, "model_calls": 6, "latency_ms": 4300}
+}

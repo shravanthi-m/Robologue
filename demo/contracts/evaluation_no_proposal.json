@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "source_kind": "mock",
+  "recording_ids": ["mock-val-recording"],
+  "baseline_policy_id": "baseline-v1",
+  "candidate_policy_id": null,
+  "decision": "no_proposal",
+  "reason": "No false-correct development case occurred, so no candidate rule was generated.",
+  "scored": 6,
+  "excluded": 1,
+  "baseline": {"state_accuracy": 0.83, "false_correct": 0, "incorrect_recall": 1.0, "abstentions": 0, "model_calls": 6, "latency_ms": 4100},
+  "candidate": null
+}

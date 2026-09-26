@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "source_kind": "mock",
+  "policy_id": "candidate-v2",
+  "parent_policy_id": "baseline-v1",
+  "status": "candidate",
+  "checklist": ["Require explicit visual evidence of the wheel-to-axle connection before marking mock-wheel correct."],
+  "supporting_dev_case_ids": ["dev-03", "dev-07"]
+}

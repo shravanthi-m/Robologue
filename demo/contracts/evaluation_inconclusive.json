@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "source_kind": "mock",
+  "recording_ids": ["mock-val-recording"],
+  "baseline_policy_id": "baseline-v1",
+  "candidate_policy_id": "candidate-v2",
+  "decision": "inconclusive",
+  "reason": "Only 2 scorable validation checkpoints; too little reference data to decide.",
+  "scored": 2,
+  "excluded": 4,
+  "baseline": {"state_accuracy": 0.5, "false_correct": 0, "incorrect_recall": "unavailable", "abstentions": 0, "model_calls": 2, "latency_ms": 1500},
+  "candidate": {"state_accuracy": 0.5, "false_correct": 0, "incorrect_recall": "unavailable", "abstentions": 1, "model_calls": 2, "latency_ms": 1600}
+}

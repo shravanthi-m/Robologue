@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "source_kind": "mock",
+  "recording_ids": ["mock-val-recording"],
+  "baseline_policy_id": "baseline-v1",
+  "candidate_policy_id": "candidate-v2",
+  "decision": "rejected",
+  "reason": "False-correct count tied (1 vs 1); ties are rejected. No incorrect reference states were present, so recall is unavailable.",
+  "scored": 6,
+  "excluded": 1,
+  "baseline": {"state_accuracy": 0.67, "false_correct": 1, "incorrect_recall": "unavailable", "abstentions": 0, "model_calls": 6, "latency_ms": 4100},
+  "candidate": {"state_accuracy": 0.5, "false_correct": 1, "incorrect_recall": "unavailable", "abstentions": 2, "model_calls": 6, "latency_ms": 4300}
+}
