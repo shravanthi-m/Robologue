@@ -8,7 +8,7 @@ import os
 import sqlite3
 from pathlib import Path
 
-from db import CheckpointConflict, MongoBackend
+from db import CheckpointConflict, DocumentExists, MongoBackend
 
 
 class SQLiteStore:
@@ -54,6 +54,22 @@ class SQLiteStore:
         return [json.loads(row[0]) for row in self.db.execute(
             "SELECT decision FROM decisions WHERE session = ? ORDER BY rowid", (session,))]
 
+    def put_inspection(self, session, inspection_id, document):
+        """Immutable source evidence, separate from verdict/decision projections."""
+        with self.db:
+            self.db.execute("""CREATE TABLE IF NOT EXISTS recording_inspections (
+                session TEXT NOT NULL, inspection_id TEXT NOT NULL, document TEXT NOT NULL,
+                PRIMARY KEY (session, inspection_id))""")
+            existing = self.db.execute(
+                "SELECT document FROM recording_inspections WHERE session=? AND inspection_id=?",
+                (session, inspection_id)).fetchone()
+            if existing:
+                if json.loads(existing[0]) != document:
+                    raise CheckpointConflict("Inspection identity reused with different evidence or time mapping")
+                return
+            self.db.execute("INSERT INTO recording_inspections VALUES (?, ?, ?)",
+                            (session, inspection_id, json.dumps(document, allow_nan=False)))
+
     def close(self):
         self.db.close()
 
@@ -93,6 +109,15 @@ class AtlasStore:
         docs = self.backend.db.recording_decisions.find({"session": session}).sort(
             [("decision.timestamp", 1), ("decision.event_id", 1)])
         return [d["decision"] for d in docs]
+
+    def put_inspection(self, session, inspection_id, document):
+        identity = json.dumps([session, inspection_id], separators=(",", ":"))
+        doc = {"_id": identity, "session": session, "inspection": document}
+        try:
+            self.backend.insert("recording_inspections", doc)
+        except DocumentExists:
+            if self.backend.find_one("recording_inspections", {"_id": identity}) != doc:
+                raise CheckpointConflict("Inspection identity reused with different evidence or time mapping") from None
 
     def close(self):
         self.backend.close()

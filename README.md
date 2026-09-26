@@ -120,3 +120,11 @@ classifier's three perception-adjacent categories are reserved (documented,
 not faked) because the sim localizes perfectly by design. Lesson confidence
 is qualitative. No LLM is in the default loop; the mechanism is deterministic rules
 over traces, which is what makes it auditable.
+
+## Person 1 VLM integration
+
+Video and native IndustReal RGB adapters now export neutral visual evidence into
+the durable recording runtime. See [integration commands](docs/PERSON1_INTEGRATION.md)
+and [native RGB quickstart](docs/PERSON1_INDUSTREAL.md). No simulator is required
+for this path. The bridge persists inspections and evidence references, not inferred
+failure labels. A correctness verifier remains a separate component.
