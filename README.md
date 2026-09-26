@@ -21,15 +21,39 @@ procedural memory, not robot motor control or demonstrated sim-to-real transfer.
 - [Annotation schema](https://github.com/CaptainCook4D/annotations/blob/main/ANNOTATIONS.md)
 - [Task graphs](https://github.com/CaptainCook4D/annotations/tree/main/task_graphs)
 
-Start with one recipe and a few complete recordings. Use RGB first. Add depth or
-other sensor channels only after confirming availability, alignment, and value
-for the chosen subset. Do not assume human joint trajectories or robot joint
-commands are available in CaptainCook4D.
+### Sensor data and dataset decision
+
+CaptainCook4D is not video-only. The [official downloader](https://github.com/CaptainCook4D/downloader)
+documents a `spatial` stream containing head and hand pose, plus camera pose,
+depth, audio, and accelerometer/gyroscope/magnetometer streams. The paper's data
+composition table lists left and right wrist poses. These are human/device
+measurements, not robot joint commands. Verify an actual spatial file before
+promising full finger-joint positions, joint angles, or a specific coordinate layout.
+
+Coverage is incomplete: the downloader notes that some recordings have only
+GoPro footage and others lack spatial/IMU data. Synchronized streams are described
+as aligned with GoPro; raw streams retain device timestamps. Inspect timestamps,
+coordinate frames, missing values, and tracking validity in the selected files.
+Device IMU motion is not a direct measure of hand or object motion.
+
+**Recommendation: keep CaptainCook4D for the current procedural-memory MVP.**
+Select one recipe with a few complete recordings and check RGB + spatial coverage.
+Use RGB plus a small motion summary if the spatial stream is usable. A lack of
+tracking is unknown evidence, not an error or proof of no motion. Pose should help
+choose when/what to inspect; it cannot independently prove successful execution.
+
+[IndustReal](https://github.com/TimSchoonbeek/IndustReal) is the alternative if
+explicit hand-joint tracking and assembly are central. Its README documents
+`hands.csv`, gaze and head tracking at 10 FPS, RGB/depth, and assembly error labels.
+This is still human tracking, not robot actuation. Prefer the switch only if a
+small usable subset can be opened promptly; do not spend the build comparing
+entire datasets. The existing checkpoint/replay core is dataset-independent,
+while the label converter currently supports CaptainCook4D only.
 
 ## Proposed pipeline
 
 ```text
-video chunks + procedure instructions
+video chunks + procedure instructions + optional synchronized pose summary
   -> perception adapter (to build; observations and uncertainty only)
   -> timestamped events
   -> persistent task memory in Atlas
@@ -133,18 +157,45 @@ nonnegative, and chronological. An event ID cannot be reused with changed conten
 Task graphs describe dependencies; do not assume every recipe has a strict linear
 order. The starter does not yet parse or enforce the official graphs.
 
-## Six-hour team plan
+## Four-person plan: five to six hours
 
-| Owner | Deliverable |
+Keep one recipe/task family and one end-to-end demo. Four people let us separate
+sensor work, harness work, evaluation, and the demo rather than expand the scope.
+
+| Owner | Workstream | Concrete handoff |
+| --- | --- | --- |
+| Person 1 | Data + perception | Select/download a tiny recording subset; inspect spatial schema and alignment; produce chronological observation JSONL from RGB and optional motion summaries |
+| Person 2 | Harness + Atlas | Persist task memory in the provided Sandbox; add evidence-based verification decisions and bounded retrieval; prove restart recovery |
+| Person 3 | Evaluation + adaptation | Keep labels isolated; define whole-recording splits; compare fixed-model baselines; propose and validate one bounded policy change if time permits |
+| Person 4 | Replay UI + integration + submission | Connect the event/decision stream to a minimal recording replay; show evidence and unresolved issues; own integration checks, README, video, and submission |
+
+### Shared interfaces
+
+- Person 1 produces the existing observation JSONL contract. Summarize optional
+  sensor evidence in `observation` initially; do not add unknown schema fields.
+- Person 2 consumes observations and returns decisions containing `event_id`,
+  `timestamp`, `action`, `open_issues`, and `completed_steps`.
+- Person 3 alone handles evaluation labels and produces aggregate metrics. No
+  current test label or error description enters perception or agent context.
+- Person 4 displays predictions as predictions and clearly labels synthetic
+  fixtures. Use sample events while the real-data adapter is being built.
+
+### Schedule and scope gates
+
+| Elapsed | Shared milestone |
 | --- | --- |
-| Person 1 | Obtain one recipe subset; implement video sampling and perception-to-event adapter; verify timestamps |
-| Person 2 | Connect Atlas; extend verification agent and evidence retrieval; demonstrate process restart |
-| Person 3 | Build evaluator and simple replay UI; implement and test one bounded policy change |
+| 0–30 min | Freeze interfaces and one task; Person 1 opens a real recording and matching sensor/label files; others use the synthetic fixture |
+| 30–120 min | Work independently: observation adapter, Atlas harness, evaluator, replay UI |
+| 2–3 hours | Integrate one real recording end to end and restart midway |
+| 3–4 hours | Evaluate separate recordings with identical perception outputs and model settings |
+| 4–5 hours | Add one tested verification-policy change only if the core works; otherwise fix failure cases |
+| Final 30–60 min | Freeze features, record the one-minute demo, verify public repo/demo access, and submit |
 
-First 30 minutes: confirm video access and parse one recording. By hour 3: complete
-one real-video replay into Atlas. Hours 3–4: compare memory and stateless runs.
-Hour 5: add policy adaptation only if the core works. Final hour: record demo,
-document original contributions, and submit public repo and accessible demo.
+At 30 minutes, if spatial data cannot be opened/aligned, proceed RGB-first on
+CaptainCook4D; do not silently present generated tracking as captured sensor data.
+If detailed hand joints are essential and an IndustReal subset is already usable,
+make one dataset switch then and freeze it. No model training, robot control,
+full-dataset downloads, or second task family in this time budget.
 
 For recursive harnessing, propose one check such as requiring explicit prerequisite
 evidence after repeated order-related errors. Evaluate on development recordings,
@@ -153,7 +204,9 @@ the score. Keep the underlying model fixed when measuring harness improvements.
 
 ## Evaluation and honest claims
 
-Compare identical perception outputs with and without memory. Split by complete
+First compare identical perception outputs with and without memory. If pose is
+added, separately compare RGB-only and RGB-plus-pose with the same harness, so
+sensor improvements are not attributed to memory. Split by complete
 recording (preferably by participant/environment), not frames. Ground-truth labels
 can inform development feedback, but final evaluation labels never enter memory.
 
