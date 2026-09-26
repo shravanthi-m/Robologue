@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "source_kind": "public_component_geometry",
+  "evaluation_only": false,
+  "source": {
+    "dataset_url": "https://data.4tu.nl/datasets/b008dd74-020d-4ea4-a8ba-7bb60769d224",
+    "dataset_version_doi": "https://doi.org/10.4121/b008dd74-020d-4ea4-a8ba-7bb60769d224.v2",
+    "archive_url": "https://data.4tu.nl/file/b008dd74-020d-4ea4-a8ba-7bb60769d224/4b6641cf-0034-4875-8ebb-73e35e4a5b91",
+    "license": "Apache-2.0",
+    "retrieved_date": "2026-09-26",
+    "archive_md5": "20a25a8eaa2ad605f269d30fa40275a7",
+    "document": "part_geometries/Overview of states.pdf",
+    "document_sha256": "91a7ec2360826e678d3533638ce0096f1fc79220f4c7a66f39b4896b6b88a7c0",
+    "page": 1,
+    "grounding": "Individual labeled CAD parts and their arrows in the public component-key diagram. Excludes state configuration tables and binary state codes."
+  },
+  "reference_image": {
+    "file": "component_key.jpg",
+    "sha256": "3969c2621c1d21426e86a9bc65d29fbbaed5396629aed3dce085d3eac6ccfa05",
+    "render_scale_long_edge": 1800,
+    "crop_pixels": {
+      "x": 12,
+      "y": 740,
+      "width": 1370,
+      "height": 735
+    }
+  },
+  "components": [
+    {
+      "component_id": "component-0",
+      "name": "base",
+      "description": "Central white rectangular chassis base, joining the front and rear chassis assemblies. Distinct from the flat paired beams attached to it."
+    },
+    {
+      "component_id": "component-1",
+      "name": "front chassis",
+      "description": "Short paired white beams extending from the base toward the front bracket and sign-bearing wheel assembly. The front chassis pin joins these beams to the base."
+    },
+    {
+      "component_id": "component-2",
+      "name": "front chassis pin",
+      "description": "Grey pin with magenta nut at the vertical attachment between the front chassis beams and the base, near the bracket end. Distinct from the screw standing in the front bracket."
+    },
+    {
+      "component_id": "component-3",
+      "name": "rear chassis",
+      "description": "Long paired white beams extending from the base toward the rear wheel assembly with its magenta pulley. Their attachment region has upright rounded ends."
+    },
+    {
+      "component_id": "component-4",
+      "name": "short rear chassis",
+      "description": "Separate short paired white rear-chassis beams, shown individually in the key. This is an alternative shorter rear chassis part, not the front chassis."
+    },
+    {
+      "component_id": "component-5",
+      "name": "front rear chassis pin",
+      "description": "Grey pin with magenta nut at the forward attachment position of the rear chassis to the base, closer to the front chassis. It is separate from the rear rear chassis pin."
+    },
+    {
+      "component_id": "component-6",
+      "name": "rear rear chassis pin",
+      "description": "Grey pin with magenta nut at the rearward attachment position of the rear chassis to the base, closer to the rear axle and pulley. It is separate from the front rear chassis pin."
+    },
+    {
+      "component_id": "component-7",
+      "name": "front bracket",
+      "description": "White U-shaped bracket at the front end of the short front chassis, next to the sign-bearing front wheel assembly. Its vertical screw is a separate component."
+    },
+    {
+      "component_id": "component-8",
+      "name": "front bracket screw",
+      "description": "Upright grey screw with a tall rounded magenta head or handle in the front bracket, near the sign-bearing front wheel assembly. Distinct from the front chassis pin and nut."
+    },
+    {
+      "component_id": "component-9",
+      "name": "front wheel assy",
+      "description": "Pair of black wheels on a grey axle with magenta fittings and a rectangular magenta STEMFIE sign at the center. Mounted at the bracket end of the front chassis."
+    },
+    {
+      "component_id": "component-10",
+      "name": "rear wheel assy",
+      "description": "Pair of black wheels on a grey axle with a magenta pulley at the center and magenta outer fittings. Mounted on the long rear chassis end."
+    }
+  ]
+}
