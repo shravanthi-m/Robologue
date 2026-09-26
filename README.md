@@ -16,9 +16,10 @@ A hackathon starter for a persistent procedural-memory harness, evaluated on
 CaptainCook4D egocentric recordings. The goal is to remember unresolved mistakes
 through a long task and improve which evidence an agent checks before advancing.
 
-**Status:** runnable memory plumbing, a synthetic observation replay, optional
-MongoDB Atlas persistence, a CaptainCook4D evaluation-label converter, an
-IndustReal label adapter, a hidden-label four-outcome scorer, and a tested
+**Status:** runnable memory plumbing, a synthetic observation replay, MongoDB
+Atlas persistence verified against the event Sandbox (decisions, inspections,
+and sessions stored per recording), a CaptainCook4D evaluation-label converter,
+an IndustReal label adapter, a hidden-label four-outcome scorer, and a tested
 single-rule policy promotion gate. There is no video model, trained error
 detector, or real-data benchmark result yet. The bundled decisions are deterministic.
 
@@ -36,32 +37,13 @@ procedural memory, not robot motor control or demonstrated sim-to-real transfer.
 
 ### Sensor data and dataset decision
 
-CaptainCook4D is not video-only. The [official downloader](https://github.com/CaptainCook4D/downloader)
-documents a `spatial` stream containing head and hand pose, plus camera pose,
-depth, audio, and accelerometer/gyroscope/magnetometer streams. The paper's data
-composition table lists left and right wrist poses. These are human/device
-measurements, not robot joint commands. Verify an actual spatial file before
-promising full finger-joint positions, joint angles, or a specific coordinate layout.
-
-Coverage is incomplete: the downloader notes that some recordings have only
-GoPro footage and others lack spatial/IMU data. Synchronized streams are described
-as aligned with GoPro; raw streams retain device timestamps. Inspect timestamps,
-coordinate frames, missing values, and tracking validity in the selected files.
-Device IMU motion is not a direct measure of hand or object motion.
-
-**Recommendation: keep CaptainCook4D for the current procedural-memory MVP.**
-Select one task family with a few complete recordings and check RGB + spatial coverage.
-Use RGB plus a small motion summary if the spatial stream is usable. A lack of
-tracking is unknown evidence, not an error or proof of no motion. Pose should help
-choose when/what to inspect; it cannot independently prove successful execution.
-
-[IndustReal](https://github.com/TimSchoonbeek/IndustReal) is the alternative if
-explicit hand-joint tracking and assembly are central. Its README documents
-`hands.csv`, gaze and head tracking at 10 FPS, RGB/depth, and assembly error labels.
-This is still human tracking, not robot actuation. Prefer the switch only if a
-small usable subset can be opened promptly; do not spend the build comparing
-entire datasets. The existing checkpoint/replay core is dataset-independent,
-while the label converter currently supports CaptainCook4D only.
+CaptainCook4D provides real procedural-activity recordings with annotations,
+error categories, and task graphs, which is why it fits a procedural-memory
+harness. The harness itself is dataset-independent: it operates on observation
+JSONL and label CSVs, and this build was exercised on synthetic fixtures in
+those shapes, not on downloaded recordings. Before claiming results on real
+footage, verify stream coverage and timestamps on the actual files selected;
+some recordings lack spatial/IMU data.
 
 ## Target architecture: budgeted verification with persistent memory
 
@@ -341,7 +323,13 @@ One worker per session is supported. Concurrent writers need optimistic locking.
 Only five recent observations enter the retained context, but receipt IDs and task
 state still grow. Long deployments need separate event storage, compaction, and
 MongoDB document-size handling. This is not a billion-token implementation.
-No database provisioning, credentials, or live Atlas connection is bundled.
+No database provisioning or credentials are bundled; never commit credentials.
+
+Verified 2026-09-26 against the event Sandbox: replaying with
+`--backend atlas` persists decisions, inspections, and sessions per recording
+in the `robologue` database, confirmed by browsing the collections. Local mode
+is only for development; the submitted project uses the provided hackathon
+Atlas Sandbox.
 
 ## Prepare real evaluation labels
 
