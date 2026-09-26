@@ -1,6 +1,6 @@
 # Robologue: Four-Person Task Split
 
-**Build window:** 5–6 hours. **Dataset:** CaptainCook4D. **Start with:** one recipe,
+**Build window:** 5-6 hours. **Dataset:** CaptainCook4D. **Start with:** one recipe,
 RGB recordings, three verification tools, persistent task memory, and one evaluated
 policy revision. Pose summaries are optional until the files are validated.
 
@@ -9,18 +9,18 @@ policy revision. Pose summaries are optional until the files are validated.
 > evidence, and improves its verification policy while the underlying models stay fixed.
 
 Read [the architecture](README.md#target-architecture-budgeted-verification-with-persistent-memory)
-for the design and [Person 1's guide](docs/PERSON1.md) for the implemented evidence tools.
+for the design and [the observation contract](README.md#observation-contract) for the evidence format.
 
 ## Ownership: who does what?
 
 | Person | Owner | Core question | Main deliverable |
 | --- | --- | --- | --- |
-| **1** | **Shrav — data and perception** | What evidence is available, and what does it show? | Working video inspection tool with timestamps and uncertainty |
+| **1** | **Shrav - data and perception** | What evidence is available, and what does it show? | Working video inspection tool with timestamps and uncertainty |
 | **2** | **Agent and Atlas memory** | What should the agent inspect, remember, and conclude? | Budgeted verification agent with restart-safe memory |
 | **3** | **Evaluation and policy improvement** | Was the decision right, and did the policy improve? | Hidden-label evaluator and tested policy revision |
 | **4** | **Product, integration and submission** | Can we run and clearly show the complete system? | Replay interface, integrated run, and one-minute demo |
 
-Assign names to Persons 2–4 at kickoff. No one needs to wait for the real video tool:
+Assign names to Persons 2-4 at kickoff. No one needs to wait for the real video tool:
 use explicit synthetic fixtures until integration. Person 4 coordinates integration;
 each owner remains responsible for their module.
 
@@ -28,11 +28,12 @@ each owner remains responsible for their module.
 
 Already implemented:
 
-- Person 1's video registry, timestamp-based frame sampling, cached OpenRouter
-  inspection adapter, and separate CLI in `robologue/perception/`.
 - Local/Atlas checkpoint stores, deterministic replay, and a stateless fixture baseline.
-- CaptainCook4D annotation conversion for evaluator-only use.
-- Tests covering persistence, label-field separation, sampling, and mocked API calls.
+- CaptainCook4D annotation conversion and an IndustReal PSR label adapter, both evaluator-only.
+- Hidden-label four-outcome scorer and a tested single-rule policy promotion gate.
+- Tests covering persistence, restart recovery, event ordering, label-field separation,
+  and the evaluator/policy gates. Person 1's video inspection tooling is still to be
+  built; use the synthetic observation fixture until it lands.
 
 Still required:
 
@@ -42,7 +43,7 @@ Still required:
 
 The existing deterministic fixture is not a trained model or a real-data result.
 
-## Phase 0 — 0:00–0:30: shared kickoff and contracts
+## Phase 0 - 0:00-0:30: shared kickoff and contracts
 
 Everyone agrees on these decisions before expanding implementation:
 
@@ -60,9 +61,9 @@ Everyone agrees on these decisions before expanding implementation:
 module they own. If there are too few usable recordings for separate splits, reduce
 the evaluation claim rather than split adjacent frames across development and test.
 
-## Person 1 — Shrav: data and perception
+## Person 1 - Shrav: data and perception
 
-### First independent tasks — 0:30–1:30
+### First independent tasks - 0:30-1:30
 
 - [ ] Obtain one selected recording; retain its actual recording ID and camera/view.
 - [ ] Register it with the existing perception CLI; inspect duration and metadata.
@@ -72,14 +73,14 @@ the evaluation claim rather than split adjacent frames across development and te
 - [ ] Run one real `inspect_video` request and review its observations and uncertainty.
 - [ ] Record the manifest path, inspection ID, prompt/model versions, and sample evidence paths.
 
-### Integration — 1:30–2:30
+### Integration - 1:30-2:30
 
 - [ ] Give Person 2 the Python callable and a real result; replace their fake inspection tool.
 - [ ] Give Person 4 frame paths and timestamps for the evidence display.
 - [ ] Tell Person 3 the precise time origin and recording identity for annotation matching.
 - [ ] Handle unreadable frames and empty intervals explicitly; do not fill gaps with invented evidence.
 
-### Baseline and improvement runs — 2:30–4:30
+### Baseline and improvement runs - 2:30-4:30
 
 - [ ] Make the selected recordings available and keep perception configuration fixed.
 - [ ] Reuse cached results for identical inspection requests; new intervals still require inspection.
@@ -93,14 +94,15 @@ the evaluation claim rather than split adjacent frames across development and te
 - [ ] Person 2 can inspect a permitted interval without asking you to operate the tool.
 - [ ] No error labels or annotation-derived answers enter the perception path.
 
-**Own:** `robologue/perception/`, `tests/test_perception.py`, `docs/PERSON1.md`.
+**Own:** `examples/observations.jsonl` and the observation JSONL contract; perception
+adapters (`robologue/perception/`, `tests/test_perception.py`, `docs/PERSON1.md`) when built.
 **Do not own:** final verdict logic, evaluation labels, learned rules, or the UI.
 **Acceptance:** real video interval -> evidence-backed observations with uncertainty,
 no future frames, provenance, and a reproducible cache.
 
-## Person 2 — verification agent and Atlas memory
+## Person 2 - verification agent and Atlas memory
 
-### First independent tasks — 0:30–1:30
+### First independent tasks - 0:30-1:30
 
 - [ ] Connect to the provided hackathon Atlas Sandbox using private environment variables.
 - [ ] Build a tool-calling verifier using fake inspection/experience results first.
@@ -110,7 +112,7 @@ no future frames, provenance, and a reproducible cache.
 - [ ] Enforce budgets in code, not only in the prompt; bound retries and charge attempted calls.
 - [ ] Keep step instructions and prerequisite structure separate from observed completion.
 
-### Integration — 1:30–2:30
+### Integration - 1:30-2:30
 
 - [ ] Replace fake video inspection with Person 1's callable.
 - [ ] Supply `observed_until` from the trusted run cursor, not model-selected arguments.
@@ -118,7 +120,7 @@ no future frames, provenance, and a reproducible cache.
 - [ ] Store observations, verdicts, outstanding issues and checkpoint cursor in Atlas.
 - [ ] Emit run events to Person 4 and prediction records to Person 3.
 
-### Baseline and improvement runs — 2:30–4:30
+### Baseline and improvement runs - 2:30-4:30
 
 - [ ] Implement `search_experience` over eligible development cases.
 - [ ] Filter out current-recording, validation and test cases before semantic retrieval.
@@ -138,9 +140,9 @@ and `robologue/tools.py`, plus corresponding tests. Coordinate shared CLI change
 **Acceptance:** real tool-use loop with Atlas persistence, bounded calls, structured
 verdicts and restart recovery. The existing deterministic replay is only scaffolding.
 
-## Person 3 — evaluation and policy improvement
+## Person 3 - evaluation and policy improvement
 
-### First independent tasks — 0:30–1:30
+### First independent tasks - 0:30-1:30
 
 - [ ] Inspect official annotations and choose usable recordings with Person 1.
 - [ ] Assign whole recordings to development/validation/final test; record provenance.
@@ -150,14 +152,14 @@ verdicts and restart recovery. The existing deterministic replay is only scaffol
 - [ ] Predeclare metrics and promotion criteria: missed errors, false alarms, abstentions,
   prediction coverage and logical tool cost. Report counts as well as rates.
 
-### Integration — 1:30–2:30
+### Integration - 1:30-2:30
 
 - [ ] Consume Person 2's verdicts without exposing labels to their tools or context.
 - [ ] Score one development recording and confirm annotation/time matching with Person 1.
 - [ ] Give Person 4 an evaluation report shape for its separate results view.
 - [ ] Distinguish perception failures, tool-selection failures, memory failures and ambiguous labels.
 
-### Baseline and improvement runs — 2:30–4:30
+### Baseline and improvement runs - 2:30-4:30
 
 - [ ] Run the fixed-policy baseline under frozen models/budgets.
 - [ ] Use development misses to propose one scoped rule automatically.
@@ -173,14 +175,15 @@ verdicts and restart recovery. The existing deterministic replay is only scaffol
 - [ ] Keep labels and evaluation outcomes inaccessible to agent tools.
 - [ ] Explain sample-size limitations and that recorded footage cannot prove physical recovery.
 
-**Own:** `robologue/captaincook.py`, proposed `robologue/evaluate.py`,
-`robologue/policy_selection.py`, and evaluator tests. Coordinate CLI changes.
+**Own:** `robologue/captaincook.py`, `robologue/industreal_labels.py`,
+`robologue/evaluate.py`, `robologue/policies.py`, and evaluator tests
+(`tests/test_evaluation.py`). Coordinate CLI changes.
 **Acceptance:** independent scoring, no answer leakage, and an auditable candidate
 promotion/rejection. A manually written rule must be labeled manual.
 
-## Person 4 — product, integration and submission
+## Person 4 - product, integration and submission
 
-### First independent tasks — 0:30–1:30
+### First independent tasks - 0:30-1:30
 
 - [ ] Build a minimal replay view using synthetic fixture events.
 - [ ] Define the run-start interface with Person 2 and a JSONL event stream/file to consume.
@@ -188,14 +191,14 @@ promotion/rejection. A manually written rule must be labeled manual.
 - [ ] Keep secrets and provider calls on the backend, not in browser code.
 - [ ] Make the frontend useful even if it initially reads a completed run rather than streams live.
 
-### Integration — 1:30–2:30
+### Integration - 1:30-2:30
 
 - [ ] Connect one real run; display Person 1's evidence and Person 2's memory/decisions.
 - [ ] Confirm one command/button can reproduce the integration run.
 - [ ] Add Person 3's metrics in a separate evaluation view after prediction.
 - [ ] Clearly label live, cached, recorded and synthetic content.
 
-### Baseline and improvement runs — 2:30–4:30
+### Baseline and improvement runs - 2:30-4:30
 
 - [ ] Display baseline and candidate runs with model/policy/budget metadata.
 - [ ] Show the changed rule, which tool choice changed, and supporting evidence.
@@ -304,15 +307,15 @@ replay/order explicit. This is a target integration contract, not already implem
 | 2:30 | One real step completes video -> agent -> Atlas -> evaluator -> UI | Everyone prioritizes the broken integration boundary |
 | 3:30 | Repeatable baseline and restart demo work | Stop feature expansion; finish the baseline |
 | 4:30 | One candidate is validated and adopted or rejected | Report the result honestly; don't tune on final test |
-| Final 30–90 min | Freeze, final evaluation, record, verify access, submit | Cut optional UI polish and extra recordings |
+| Final 30-90 min | Freeze, final evaluation, record, verify access, submit | Cut optional UI polish and extra recordings |
 
 For a five-hour deadline, begin the freeze by hour four. Four people should reduce
 integration risk, not expand scope to extra datasets, recipes, or model training.
 
 ## Coordination rules
 
-- Work on separately named branches, for example `codex/person1-perception`,
-  `codex/person2-agent`, `codex/person3-evaluation`, `codex/person4-demo`.
+- Work directly on `main`. Commit small usable changes. Person 4 coordinates merges
+  and an integration check.
 - Prefer separate clones/worktrees if sharing a computer. Do not switch the branch
   underneath another person's running work in the same checkout.
 - Commit small usable changes. Person 4 coordinates merges and an integration check.

@@ -1,13 +1,16 @@
 # Robologue
 
+*a dialogue for robots*
+
 A hackathon starter for a persistent procedural-memory harness, evaluated on
 CaptainCook4D egocentric recordings. The goal is to remember unresolved mistakes
 through a long task and improve which evidence an agent checks before advancing.
 
 **Status:** runnable memory plumbing, a synthetic observation replay, optional
-MongoDB Atlas persistence, and a CaptainCook4D evaluation-label converter.
-There is no video model, trained error detector, adaptive policy optimizer, or
-real-data benchmark result yet. The bundled decisions are deterministic.
+MongoDB Atlas persistence, a CaptainCook4D evaluation-label converter, an
+IndustReal label adapter, a hidden-label four-outcome scorer, and a tested
+single-rule policy promotion gate. There is no video model, trained error
+detector, or real-data benchmark result yet. The bundled decisions are deterministic.
 
 ## Why CaptainCook4D?
 
@@ -344,6 +347,13 @@ step IDs using unique annotation IDs. Missing steps can have `-1` timestamps;
 these become untimed evaluator records, never observations at the start of a video.
 The output must not already exist, to avoid accidental overwriting.
 
+For IndustReal, `robologue/industreal_labels.py` reads the official headerless
+`PSR_labels_raw.csv` together with `procedure_info.json` and emits evaluator-only
+records keyed by recording, component, and frame. Labels map `-1` to incorrect,
+`0` to not_completed, and `1` to correct. Malformed identities and inconsistent
+component widths are rejected; unmatched checkpoints are excluded and reported,
+never forward-filled or matched across recordings.
+
 **Do not generate observed actions from annotation descriptions.** These can state
 the expected instruction rather than what actually happened. In particular,
 `errors`, `has_errors`, `is_error`, and `modified_description` are hidden labels.
@@ -385,7 +395,7 @@ sensor work, harness work, evaluation, and the demo rather than expand the scope
 | --- | --- | --- |
 | Person 1 | Data + perception | Select/download a tiny recording subset; inspect spatial schema and alignment; produce chronological observation JSONL from RGB and optional motion summaries |
 | Person 2 | Harness + Atlas | Persist task memory in the provided Sandbox; add evidence-based verification decisions and bounded retrieval; prove restart recovery |
-| Person 3 | Evaluation + adaptation | Keep labels isolated; define whole-recording splits; compare fixed-model baselines; propose and validate one bounded policy change if time permits |
+| Person 3 | Evaluation + adaptation | Keep labels isolated; define whole-recording splits; compare fixed-model baselines; propose and validate one bounded policy change (scorer and promotion gate implemented in `robologue/evaluate.py` and `robologue/policies.py`) |
 | Person 4 | Replay UI + integration + submission | Connect the event/decision stream to a minimal recording replay; show evidence and unresolved issues; own integration checks, README, video, and submission |
 
 ### Shared interfaces
@@ -403,12 +413,12 @@ sensor work, harness work, evaluation, and the demo rather than expand the scope
 
 | Elapsed | Shared milestone |
 | --- | --- |
-| 0–30 min | Freeze interfaces and one task; Person 1 opens a real recording and matching sensor/label files; others use the synthetic fixture |
-| 30–120 min | Work independently: observation adapter, Atlas harness, evaluator, replay UI |
-| 2–3 hours | Integrate one real recording end to end and restart midway |
-| 3–4 hours | Evaluate separate recordings with identical perception outputs and model settings |
-| 4–5 hours | Add one tested verification-policy change only if the core works; otherwise fix failure cases |
-| Final 30–60 min | Freeze features, record the one-minute demo, verify public repo/demo access, and submit |
+| 0-30 min | Freeze interfaces and one task; Person 1 opens a real recording and matching sensor/label files; others use the synthetic fixture |
+| 30-120 min | Work independently: observation adapter, Atlas harness, evaluator, replay UI |
+| 2-3 hours | Integrate one real recording end to end and restart midway |
+| 3-4 hours | Evaluate separate recordings with identical perception outputs and model settings |
+| 4-5 hours | Add one tested verification-policy change only if the core works; otherwise fix failure cases |
+| Final 30-60 min | Freeze features, record the one-minute demo, verify public repo/demo access, and submit |
 
 At 30 minutes, if spatial data cannot be opened/aligned, proceed RGB-first on
 CaptainCook4D; do not silently present generated tracking as captured sensor data.
@@ -443,9 +453,15 @@ harness contribution and risks the event's prohibited-project categories.
 - `robologue/harness.py`: validated replay, idempotency, issue memory, stateless baseline.
 - `robologue/store.py`: local SQLite or Atlas single-document checkpoints.
 - `robologue/captaincook.py`: evaluator-only annotation conversion.
+- `robologue/industreal_labels.py`: IndustReal PSR label adapter producing evaluator-only records.
+- `robologue/evaluate.py`: hidden-label four-outcome scoring (`correct` / `incorrect` /
+  `not_completed` / `insufficient_evidence`) with exact-identity joins; abstentions never count as correct.
+- `robologue/policies.py`: proposes at most one checklist rule from real development misses;
+  promotion requires fewer false-corrects, no accuracy drop, and a respected call budget.
 - `robologue/cli.py`: CLI entry points.
 - `examples/observations.jsonl`: original synthetic fixture, not CaptainCook4D data.
 - `tests/test_core.py`: restart, leakage-boundary, ordering, and missing-step checks.
+- `tests/test_evaluation.py`: 21 tests for the label adapter, scorer, and policy promotion gates.
 
 ## Attribution and original work
 
