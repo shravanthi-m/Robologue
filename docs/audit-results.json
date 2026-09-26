@@ -1,0 +1,345 @@
+{
+  "evaluation_date": "2026-09-26",
+  "branch": "codex/integrated-video-evaluation",
+  "base_commit": "c0b489c",
+  "person1_commit": "a7f900d",
+  "person2_commit": "d1f5eac",
+  "unit_integration_tests_passed": 136,
+  "media_videos_fully_decoded": 86,
+  "media_videos_total": 86,
+  "native_recordings": 9,
+  "native_rgb_frames": 27925,
+  "state_reference_cases": 682,
+  "state_distribution": {
+    "correct": 380,
+    "not_completed": 286,
+    "incorrect": 16
+  },
+  "native_alignment": [
+    {
+      "recording_id": "03_assy_0_1",
+      "native_frames": 2754,
+      "video_frames": 2754,
+      "sample_frames": [
+        0,
+        688,
+        1377,
+        2065,
+        2753
+      ],
+      "mean_absolute_pixel_errors": [
+        2.422019675925926,
+        2.428096064814815,
+        2.5594618055555554,
+        2.480830439814815,
+        2.4518952546296298
+      ],
+      "verified_sample_alignment": true,
+      "time_basis": "decoded MP4 PTS; rendered timeline, not sensor capture clock"
+    },
+    {
+      "recording_id": "03_assy_1_3",
+      "native_frames": 2630,
+      "video_frames": 2630,
+      "sample_frames": [
+        0,
+        657,
+        1315,
+        1972,
+        2629
+      ],
+      "mean_absolute_pixel_errors": [
+        2.7633463541666665,
+        2.6474971064814814,
+        2.599609375,
+        2.3564091435185186,
+        2.4681712962962963
+      ],
+      "verified_sample_alignment": true,
+      "time_basis": "decoded MP4 PTS; rendered timeline, not sensor capture clock"
+    },
+    {
+      "recording_id": "03_main_0_1",
+      "native_frames": 1348,
+      "video_frames": 1348,
+      "sample_frames": [
+        0,
+        337,
+        674,
+        1011,
+        1347
+      ],
+      "mean_absolute_pixel_errors": [
+        2.690936053240741,
+        2.5146846064814814,
+        2.4116753472222223,
+        2.554470486111111,
+        2.410662615740741
+      ],
+      "verified_sample_alignment": true,
+      "time_basis": "decoded MP4 PTS; rendered timeline, not sensor capture clock"
+    },
+    {
+      "recording_id": "08_assy_0_1",
+      "native_frames": 5276,
+      "video_frames": 5276,
+      "sample_frames": [
+        0,
+        1319,
+        2638,
+        3957,
+        5275
+      ],
+      "mean_absolute_pixel_errors": [
+        2.857928240740741,
+        2.5590277777777777,
+        2.386863425925926,
+        2.5621021412037037,
+        2.5040870949074074
+      ],
+      "verified_sample_alignment": true,
+      "time_basis": "decoded MP4 PTS; rendered timeline, not sensor capture clock"
+    },
+    {
+      "recording_id": "08_assy_2_4",
+      "native_frames": 3443,
+      "video_frames": 3443,
+      "sample_frames": [
+        0,
+        860,
+        1721,
+        2582,
+        3442
+      ],
+      "mean_absolute_pixel_errors": [
+        2.720232928240741,
+        2.477466724537037,
+        2.449291087962963,
+        2.459056712962963,
+        2.473849826388889
+      ],
+      "verified_sample_alignment": true,
+      "time_basis": "decoded MP4 PTS; rendered timeline, not sensor capture clock"
+    },
+    {
+      "recording_id": "08_main_0_1",
+      "native_frames": 2595,
+      "video_frames": 2595,
+      "sample_frames": [
+        0,
+        648,
+        1297,
+        1946,
+        2594
+      ],
+      "mean_absolute_pixel_errors": [
+        2.665653935185185,
+        2.476417824074074,
+        2.5903862847222223,
+        2.4992042824074074,
+        2.390625
+      ],
+      "verified_sample_alignment": true,
+      "time_basis": "decoded MP4 PTS; rendered timeline, not sensor capture clock"
+    },
+    {
+      "recording_id": "09_assy_0_1",
+      "native_frames": 3501,
+      "video_frames": 3501,
+      "sample_frames": [
+        0,
+        875,
+        1750,
+        2625,
+        3500
+      ],
+      "mean_absolute_pixel_errors": [
+        2.6923828125,
+        2.5886863425925926,
+        2.4551142939814814,
+        2.5797887731481484,
+        2.472439236111111
+      ],
+      "verified_sample_alignment": true,
+      "time_basis": "decoded MP4 PTS; rendered timeline, not sensor capture clock"
+    },
+    {
+      "recording_id": "09_assy_3_1",
+      "native_frames": 3824,
+      "video_frames": 3824,
+      "sample_frames": [
+        0,
+        956,
+        1912,
+        2868,
+        3823
+      ],
+      "mean_absolute_pixel_errors": [
+        2.6399739583333335,
+        2.4065393518518516,
+        2.5122612847222223,
+        2.397316261574074,
+        2.466435185185185
+      ],
+      "verified_sample_alignment": true,
+      "time_basis": "decoded MP4 PTS; rendered timeline, not sensor capture clock"
+    },
+    {
+      "recording_id": "09_main_0_1",
+      "native_frames": 2554,
+      "video_frames": 2554,
+      "sample_frames": [
+        0,
+        638,
+        1277,
+        1915,
+        2553
+      ],
+      "mean_absolute_pixel_errors": [
+        2.6999059606481484,
+        2.470703125,
+        2.6019965277777777,
+        2.4938874421296298,
+        2.494900173611111
+      ],
+      "verified_sample_alignment": true,
+      "time_basis": "decoded MP4 PTS; rendered timeline, not sensor capture clock"
+    }
+  ],
+  "action_label_rows": 9273,
+  "official_action_split_recording_counts": {
+    "train": 36,
+    "val": 16,
+    "test": 32
+  },
+  "split_overlaps": {
+    "train_val": [],
+    "train_test": [],
+    "val_test": []
+  },
+  "class_mapping_conflicts": {},
+  "extra_videos_without_action_labels": [
+    "15_main_0_1",
+    "21_assy_1_1"
+  ],
+  "contract_audit": {
+    "status": "complete",
+    "paid_model_calls": 0,
+    "model_spend_usd": 0,
+    "source_kind": "mock",
+    "visual_accuracy": "Not measured by mock contract audit; real model evaluation is separate.",
+    "action_intervals_checked": 9273,
+    "action_intervals_out_of_video_range": 1,
+    "range_errors": [
+      {
+        "recording_id": "11_assy_0_1",
+        "class_id": 6,
+        "action": "tighten_nut",
+        "start_frame": 2552,
+        "end_frame": 2572
+      }
+    ],
+    "records": [
+      {
+        "recording_id": "03_assy_0_1",
+        "checkpoints": 6,
+        "local_decisions": 6,
+        "atlas_decisions": 6,
+        "resume_new_decisions": 0,
+        "parity": true,
+        "source_kind": "mock"
+      },
+      {
+        "recording_id": "03_assy_1_3",
+        "checkpoints": 8,
+        "local_decisions": 8,
+        "atlas_decisions": 8,
+        "resume_new_decisions": 0,
+        "parity": true,
+        "source_kind": "mock"
+      },
+      {
+        "recording_id": "03_main_0_1",
+        "checkpoints": 6,
+        "local_decisions": 6,
+        "atlas_decisions": 6,
+        "resume_new_decisions": 0,
+        "parity": true,
+        "source_kind": "mock"
+      },
+      {
+        "recording_id": "08_assy_0_1",
+        "checkpoints": 8,
+        "local_decisions": 8,
+        "atlas_decisions": 8,
+        "resume_new_decisions": 0,
+        "parity": true,
+        "source_kind": "mock"
+      },
+      {
+        "recording_id": "08_assy_2_4",
+        "checkpoints": 6,
+        "local_decisions": 6,
+        "atlas_decisions": 6,
+        "resume_new_decisions": 0,
+        "parity": true,
+        "source_kind": "mock"
+      },
+      {
+        "recording_id": "08_main_0_1",
+        "checkpoints": 8,
+        "local_decisions": 8,
+        "atlas_decisions": 8,
+        "resume_new_decisions": 0,
+        "parity": true,
+        "source_kind": "mock"
+      },
+      {
+        "recording_id": "09_assy_0_1",
+        "checkpoints": 7,
+        "local_decisions": 7,
+        "atlas_decisions": 7,
+        "resume_new_decisions": 0,
+        "parity": true,
+        "source_kind": "mock"
+      },
+      {
+        "recording_id": "09_assy_3_1",
+        "checkpoints": 7,
+        "local_decisions": 7,
+        "atlas_decisions": 7,
+        "resume_new_decisions": 0,
+        "parity": true,
+        "source_kind": "mock"
+      },
+      {
+        "recording_id": "09_main_0_1",
+        "checkpoints": 6,
+        "local_decisions": 6,
+        "atlas_decisions": 6,
+        "resume_new_decisions": 0,
+        "parity": true,
+        "source_kind": "mock"
+      }
+    ],
+    "checkpoint_packets": 62,
+    "atlas_reopen_resume": true,
+    "local_atlas_parity": true,
+    "synthetic_issue_survives_restart": true,
+    "atlas_stale_writer_rejected": true
+  },
+  "real_visual_accuracy": null,
+  "vision_inference_status": "In progress: final public-geometry setup; no completed benchmark metrics yet",
+  "paid_model_calls": 78,
+  "model_spend_usd": 0.185511,
+  "authorized_spend_cap_usd": 10,
+  "budget_snapshot": {
+    "max_usd": 10.0,
+    "max_calls": 500,
+    "dispatched_calls": 78,
+    "accounted_usd": 0.185511,
+    "reported_cost_usd": 0.145511,
+    "uncertain_charge_calls": 1,
+    "failed_calls": 4
+  }
+}

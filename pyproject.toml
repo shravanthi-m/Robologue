@@ -3,17 +3,18 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cookmemory"
+name = "robologue"
 version = "0.1.0"
-description = "CaptainCook4D procedural-memory hackathon starter"
+description = "Robologue: a dialogue for robots - persistent procedural-memory harness"
 requires-python = ">=3.10"
 dependencies = []
 
 [project.optional-dependencies]
-atlas = ["pymongo[srv]>=4.6,<5"]
+atlas = ["pymongo>=4.6,<5", "dnspython>=2.6,<3"]
+video = ["pillow>=10,<13", "numpy>=1.26,<3"]
 
 [project.scripts]
-cookmemory = "cookmemory.cli:main"
+robologue = "robologue.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["cookmemory*"]
+include = ["robologue*"]

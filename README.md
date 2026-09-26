@@ -1,18 +1,32 @@
-# CookMemory
+# Robologue
+
+*a dialogue for robots*
+
+## Integrated IndustReal runtime
+
+This branch connects real RGB inspection, durable Atlas memory, a component
+verifier, and the hidden-label evaluator. Run `robologue run-dataset` for the
+budgeted workflow. See [implementation and commands](docs/INTEGRATION.md) and
+[audit results](docs/AUDIT_RESULTS.md). The public CAD key grounds component identities. Real inference is underway;
+completed benchmark metrics will be published after the frozen evaluation.
+Media and live Atlas persistence checks are complete.
+
 
 A hackathon starter for a persistent procedural-memory harness, evaluated on
 CaptainCook4D egocentric recordings. The goal is to remember unresolved mistakes
 through a long task and improve which evidence an agent checks before advancing.
 
-**Status:** runnable memory plumbing, a synthetic observation replay, optional
-MongoDB Atlas persistence, and a CaptainCook4D evaluation-label converter.
-There is no video model, trained error detector, adaptive policy optimizer, or
-real-data benchmark result yet. The bundled decisions are deterministic.
+**Status:** runnable memory plumbing, a synthetic observation replay, MongoDB
+Atlas persistence verified against the event Sandbox (decisions, inspections,
+and sessions stored per recording), a CaptainCook4D evaluation-label converter,
+an IndustReal label adapter, a hidden-label four-outcome scorer, and a tested
+single-rule policy promotion gate. There is no video model, trained error
+detector, or real-data benchmark result yet. The bundled decisions are deterministic.
 
 ## Why CaptainCook4D?
 
-It provides real kitchen recordings, procedural annotations, error categories,
-and recipe task graphs. Some errors were deliberately induced during collection;
+It provides real procedural-activity recordings, annotations, error categories,
+and task graphs. Some errors were deliberately induced during collection;
 real footage does not imply every mistake occurred naturally. This project tests
 procedural memory, not robot motor control or demonstrated sim-to-real transfer.
 
@@ -23,32 +37,13 @@ procedural memory, not robot motor control or demonstrated sim-to-real transfer.
 
 ### Sensor data and dataset decision
 
-CaptainCook4D is not video-only. The [official downloader](https://github.com/CaptainCook4D/downloader)
-documents a `spatial` stream containing head and hand pose, plus camera pose,
-depth, audio, and accelerometer/gyroscope/magnetometer streams. The paper's data
-composition table lists left and right wrist poses. These are human/device
-measurements, not robot joint commands. Verify an actual spatial file before
-promising full finger-joint positions, joint angles, or a specific coordinate layout.
-
-Coverage is incomplete: the downloader notes that some recordings have only
-GoPro footage and others lack spatial/IMU data. Synchronized streams are described
-as aligned with GoPro; raw streams retain device timestamps. Inspect timestamps,
-coordinate frames, missing values, and tracking validity in the selected files.
-Device IMU motion is not a direct measure of hand or object motion.
-
-**Recommendation: keep CaptainCook4D for the current procedural-memory MVP.**
-Select one recipe with a few complete recordings and check RGB + spatial coverage.
-Use RGB plus a small motion summary if the spatial stream is usable. A lack of
-tracking is unknown evidence, not an error or proof of no motion. Pose should help
-choose when/what to inspect; it cannot independently prove successful execution.
-
-[IndustReal](https://github.com/TimSchoonbeek/IndustReal) is the alternative if
-explicit hand-joint tracking and assembly are central. Its README documents
-`hands.csv`, gaze and head tracking at 10 FPS, RGB/depth, and assembly error labels.
-This is still human tracking, not robot actuation. Prefer the switch only if a
-small usable subset can be opened promptly; do not spend the build comparing
-entire datasets. The existing checkpoint/replay core is dataset-independent,
-while the label converter currently supports CaptainCook4D only.
+CaptainCook4D provides real procedural-activity recordings with annotations,
+error categories, and task graphs, which is why it fits a procedural-memory
+harness. The harness itself is dataset-independent: it operates on observation
+JSONL and label CSVs, and this build was exercised on synthetic fixtures in
+those shapes, not on downloaded recordings. Before claiming results on real
+footage, verify stream coverage and timestamps on the actual files selected;
+some recordings lack spatial/IMU data.
 
 ## Target architecture: budgeted verification with persistent memory
 
@@ -110,7 +105,7 @@ budget_remaining:
 
 These times, rules, and budgets are illustrative, not dataset-derived findings.
 Distinguish observed actions from verified completion and attach evidence to both.
-Load prerequisites from recipe instructions/task graphs, not the held-out episode's
+Load prerequisites from task instructions/task graphs, not the held-out episode's
 error annotations. Filter context to the current task and relevant dependencies.
 
 For the quickest MVP, known step boundaries may be supplied without error labels;
@@ -290,11 +285,11 @@ References: [RL interaction and rewards](https://spinningup.openai.com/en/latest
 Python 3.10+; local mode needs no dependencies or API keys. Run from this directory:
 
 ```bash
-python3 -m cookmemory.cli replay examples/observations.jsonl --session demo-memory --limit 2
+python3 -m robologue.cli replay examples/observations.jsonl --session demo-memory --limit 2
 # Start a new process and resume; already applied events are skipped.
-python3 -m cookmemory.cli replay examples/observations.jsonl --session demo-memory
+python3 -m robologue.cli replay examples/observations.jsonl --session demo-memory
 # Same observations, but no semantic memory between events.
-python3 -m cookmemory.cli replay examples/observations.jsonl --session demo-stateless --mode stateless
+python3 -m robologue.cli replay examples/observations.jsonl --session demo-stateless --mode stateless
 python3 -m unittest discover -s tests -v
 ```
 
@@ -315,8 +310,8 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[atlas]'
 # Export MONGODB_URI using your provided Sandbox credentials.
-export MONGODB_DATABASE=cookmemory
-python -m cookmemory.cli replay examples/observations.jsonl --session atlas-demo --backend atlas
+export MONGODB_DATABASE=robologue
+python -m robologue.cli replay examples/observations.jsonl --session atlas-demo --backend atlas
 ```
 
 `.env.example` documents variables; this code does not load `.env` automatically.
@@ -328,7 +323,13 @@ One worker per session is supported. Concurrent writers need optimistic locking.
 Only five recent observations enter the retained context, but receipt IDs and task
 state still grow. Long deployments need separate event storage, compaction, and
 MongoDB document-size handling. This is not a billion-token implementation.
-No database provisioning, credentials, or live Atlas connection is bundled.
+No database provisioning or credentials are bundled; never commit credentials.
+
+Verified 2026-09-26 against the event Sandbox: replaying with
+`--backend atlas` persists decisions, inspections, and sessions per recording
+in the `robologue` database, confirmed by browsing the collections. Local mode
+is only for development; the submitted project uses the provided hackathon
+Atlas Sandbox.
 
 ## Prepare real evaluation labels
 
@@ -336,13 +337,20 @@ Download `annotation_json/error_annotations.json` from the official annotation
 repository into `data/`, then run:
 
 ```bash
-python3 -m cookmemory.cli prepare-labels data/error_annotations.json --output work/evaluation-labels.jsonl
+python3 -m robologue.cli prepare-labels data/error_annotations.json --output work/evaluation-labels.jsonl
 ```
 
 The converter follows the published recording/step schema. It preserves repeated
 step IDs using unique annotation IDs. Missing steps can have `-1` timestamps;
 these become untimed evaluator records, never observations at the start of a video.
 The output must not already exist, to avoid accidental overwriting.
+
+For IndustReal, `robologue/industreal_labels.py` reads the official headerless
+`PSR_labels_raw.csv` together with `procedure_info.json` and emits evaluator-only
+records keyed by recording, component, and frame. Labels map `-1` to incorrect,
+`0` to not_completed, and `1` to correct. Malformed identities and inconsistent
+component widths are rejected; unmatched checkpoints are excluded and reported,
+never forward-filled or matched across recordings.
 
 **Do not generate observed actions from annotation descriptions.** These can state
 the expected instruction rather than what actually happened. In particular,
@@ -354,6 +362,43 @@ Use fixed chronological video windows initially. Produce observations from video
 then replay the generated JSONL using the same command as above. Do not expose
 future frames, error-marked boundaries, or test annotations to the agent. Missing
 steps may be scoreable only after a prerequisite deadline or the recording ends.
+
+## Run the evaluation pipeline
+
+The `evaluate` command wires the Person 3 modules end to end: it loads
+IndustReal-format labels, scores a verdict file, proposes a checklist rule from
+false-corrects, and, given a second verdict file from a candidate policy run,
+decides promotion under a call budget. It scores verdict *files*; it does not
+run a verifier or look at video.
+
+```bash
+python3 -m robologue.cli evaluate examples/eval-synthetic/PSR_labels_raw.csv \
+  examples/eval-synthetic/baseline-verdicts.jsonl --recording rec-SYN \
+  --candidate-verdicts examples/eval-synthetic/candidate-verdicts.jsonl \
+  --policy-id checklist-v2 --parent-policy-id baseline-v1 --budget 24 \
+  --output work/eval-report.json
+```
+
+The synthetic fixtures show the intended shape: baseline scores 0.800 accuracy
+with 2 false-corrects, the candidate holds 0.800 with 0 false-corrects, and the
+promotion gate accepts with reasons. Point the command at real label files and
+real verifier verdicts for the actual experiment.
+
+## Close the loop: run with the promoted policy
+
+A promoted policy changes runtime behavior. Pass the frozen policy (a bare
+record, or an `evaluate --output` report holding one) to `replay`:
+
+```bash
+python3 -m robologue.cli replay examples/observations.jsonl --session demo \
+  --db work/memory.sqlite --policy work/eval-report.json
+```
+
+Only an `accepted` policy may run; anything else is rejected. Its checklist
+rides on every `request_verification` decision as `verification_checklist`,
+telling the verifier what evidence to require before an issue clears. This is
+the self-improvement loop running: score, propose, promote, load, verify
+against the new checklist.
 
 ## Observation contract
 
@@ -373,19 +418,19 @@ One JSON object per line:
 
 `issue`, `completed_steps`, and `resolves` are optional. Times must be finite,
 nonnegative, and chronological. An event ID cannot be reused with changed content.
-Task graphs describe dependencies; do not assume every recipe has a strict linear
+Task graphs describe dependencies; do not assume every task has a strict linear
 order. The starter does not yet parse or enforce the official graphs.
 
 ## Four-person plan: five to six hours
 
-Keep one recipe/task family and one end-to-end demo. Four people let us separate
+Keep one task family and one end-to-end demo. Four people let us separate
 sensor work, harness work, evaluation, and the demo rather than expand the scope.
 
 | Owner | Workstream | Concrete handoff |
 | --- | --- | --- |
 | Person 1 | Data + perception | Select/download a tiny recording subset; inspect spatial schema and alignment; produce chronological observation JSONL from RGB and optional motion summaries |
 | Person 2 | Harness + Atlas | Persist task memory in the provided Sandbox; add evidence-based verification decisions and bounded retrieval; prove restart recovery |
-| Person 3 | Evaluation + adaptation | Keep labels isolated; define whole-recording splits; compare fixed-model baselines; propose and validate one bounded policy change if time permits |
+| Person 3 | Evaluation + adaptation | Keep labels isolated; define whole-recording splits; compare fixed-model baselines; propose and validate one bounded policy change (scorer and promotion gate implemented in `robologue/evaluate.py` and `robologue/policies.py`) |
 | Person 4 | Replay UI + integration + submission | Connect the event/decision stream to a minimal recording replay; show evidence and unresolved issues; own integration checks, README, video, and submission |
 
 ### Shared interfaces
@@ -403,12 +448,12 @@ sensor work, harness work, evaluation, and the demo rather than expand the scope
 
 | Elapsed | Shared milestone |
 | --- | --- |
-| 0–30 min | Freeze interfaces and one task; Person 1 opens a real recording and matching sensor/label files; others use the synthetic fixture |
-| 30–120 min | Work independently: observation adapter, Atlas harness, evaluator, replay UI |
-| 2–3 hours | Integrate one real recording end to end and restart midway |
-| 3–4 hours | Evaluate separate recordings with identical perception outputs and model settings |
-| 4–5 hours | Add one tested verification-policy change only if the core works; otherwise fix failure cases |
-| Final 30–60 min | Freeze features, record the one-minute demo, verify public repo/demo access, and submit |
+| 0-30 min | Freeze interfaces and one task; Person 1 opens a real recording and matching sensor/label files; others use the synthetic fixture |
+| 30-120 min | Work independently: observation adapter, Atlas harness, evaluator, replay UI |
+| 2-3 hours | Integrate one real recording end to end and restart midway |
+| 3-4 hours | Evaluate separate recordings with identical perception outputs and model settings |
+| 4-5 hours | Add one tested verification-policy change only if the core works; otherwise fix failure cases |
+| Final 30-60 min | Freeze features, record the one-minute demo, verify public repo/demo access, and submit |
 
 At 30 minutes, if spatial data cannot be opened/aligned, proceed RGB-first on
 CaptainCook4D; do not silently present generated tracking as captured sensor data.
@@ -440,12 +485,22 @@ harness contribution and risks the event's prohibited-project categories.
 
 ## Code map
 
-- `cookmemory/harness.py`: validated replay, idempotency, issue memory, stateless baseline.
-- `cookmemory/store.py`: local SQLite or Atlas single-document checkpoints.
-- `cookmemory/captaincook.py`: evaluator-only annotation conversion.
-- `cookmemory/cli.py`: CLI entry points.
+- `robologue/harness.py`: validated replay, idempotency, issue memory, stateless baseline; loads an accepted policy and attaches its checklist to verification requests.
+- `robologue/store.py`: local SQLite or Atlas single-document checkpoints.
+- `robologue/captaincook.py`: evaluator-only annotation conversion.
+- `robologue/industreal_labels.py`: IndustReal PSR label adapter producing evaluator-only records.
+- `robologue/evaluate.py`: hidden-label four-outcome scoring (`correct` / `incorrect` /
+  `not_completed` / `insufficient_evidence`) with exact-identity joins; abstentions never count as correct.
+- `robologue/policies.py`: proposes at most one checklist rule from real development misses;
+  promotion requires fewer false-corrects, no accuracy drop, and a respected call budget.
+- `robologue/cli.py`: CLI entry points (`replay`, `prepare-labels`, `evaluate`).
 - `examples/observations.jsonl`: original synthetic fixture, not CaptainCook4D data.
+- `examples/eval-synthetic/`: hand-authored IndustReal-shaped fixtures (NOT real
+  recordings) for the `evaluate` command: `PSR_labels_raw.csv`, baseline verdicts
+  with two false approvals, and candidate verdicts with those approvals abstained.
 - `tests/test_core.py`: restart, leakage-boundary, ordering, and missing-step checks.
+- `tests/test_evaluation.py`: 37 tests for the label adapter, scorer, and policy promotion gates.
+- `tests/test_evaluate_cli.py`: 3 tests for the end-to-end `evaluate` command.
 
 ## Attribution and original work
 
@@ -458,3 +513,36 @@ All starter application code and the synthetic fixture were created for this
 hackathon. No third-party application implementation or dataset is vendored here.
 Clearly distinguish external models, libraries, and data from the harness your
 team builds during the event. Do not present existing research results as ours.
+
+## Decision-point replay player (IndustReal harness)
+
+One static HTML page that replays a recording, pauses at each checkpoint, and shows
+what the verifier saw, remembered, recalled and decided, using saved records only.
+It does not call a model or read labels. Standard library only. Full plan:
+[demo/PLAN.md](demo/PLAN.md).
+
+```bash
+python -m demo.demo --fixtures demo/contracts --out work/player.html
+python -m demo.demo --evaluation rejected   # or accepted | inconclusive | no_proposal
+# Point at real team outputs instead of fixtures:
+python -m demo.demo --verdicts-candidate run/verdicts.jsonl --events run/issue_events.jsonl \
+  --snapshot run/session.json --evaluation-file run/evaluation.json --timing run/timing.json
+```
+
+- **Frame → time** comes only from `timing.json`. Each recording sets either
+  `fps` (+ `frame_offset`) or a `frame_map` of frame → seconds. A recording
+  missing from the file is shown as an error, and no default FPS is ever assumed.
+- **MOCK badge:** shown whenever any loaded record has `source_kind: "mock"`.
+  The bundled `demo/contracts/` fixtures are all mock and are not IndustReal results.
+- **Media:** `video_path` and `clip_path` are relative to the output HTML; the CLI
+  copies `<fixtures>/media/` next to it. A missing file shows a labelled MOCK placeholder.
+  The fixture's main video (`demo/contracts/media/main.mp4`, 184.5 s, constant 10 fps,
+  848×480) is a recorded toy-car assembly clip. The checkpoints, observations and verdicts
+  placed on it are hand-written mock records, not model output.
+- Recalled past failures are limited to the development split and never come from
+  the replayed recording. Other cases are refused and listed as notices.
+- Invalid records, rejected/inconclusive/no-proposal evaluations and missing files
+  render as visible errors or results. They never crash the page or show as success.
+- Font: Red Hat Display (SIL Open Font License, `demo/assets/OFL.txt`) is embedded
+  in the page so it renders offline.
+
