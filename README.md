@@ -365,6 +365,27 @@ then replay the generated JSONL using the same command as above. Do not expose
 future frames, error-marked boundaries, or test annotations to the agent. Missing
 steps may be scoreable only after a prerequisite deadline or the recording ends.
 
+## Run the evaluation pipeline
+
+The `evaluate` command wires the Person 3 modules end to end: it loads
+IndustReal-format labels, scores a verdict file, proposes a checklist rule from
+false-corrects, and, given a second verdict file from a candidate policy run,
+decides promotion under a call budget. It scores verdict *files*; it does not
+run a verifier or look at video.
+
+```bash
+python3 -m robologue.cli evaluate examples/eval-synthetic/PSR_labels_raw.csv \
+  examples/eval-synthetic/baseline-verdicts.jsonl --recording rec-SYN \
+  --candidate-verdicts examples/eval-synthetic/candidate-verdicts.jsonl \
+  --policy-id checklist-v2 --parent-policy-id baseline-v1 --budget 24 \
+  --output work/eval-report.json
+```
+
+The synthetic fixtures show the intended shape: baseline scores 0.800 accuracy
+with 2 false-corrects, the candidate holds 0.800 with 0 false-corrects, and the
+promotion gate accepts with reasons. Point the command at real label files and
+real verifier verdicts for the actual experiment.
+
 ## Observation contract
 
 One JSON object per line:
@@ -458,10 +479,14 @@ harness contribution and risks the event's prohibited-project categories.
   `not_completed` / `insufficient_evidence`) with exact-identity joins; abstentions never count as correct.
 - `robologue/policies.py`: proposes at most one checklist rule from real development misses;
   promotion requires fewer false-corrects, no accuracy drop, and a respected call budget.
-- `robologue/cli.py`: CLI entry points.
+- `robologue/cli.py`: CLI entry points (`replay`, `prepare-labels`, `evaluate`).
 - `examples/observations.jsonl`: original synthetic fixture, not CaptainCook4D data.
+- `examples/eval-synthetic/`: hand-authored IndustReal-shaped fixtures (NOT real
+  recordings) for the `evaluate` command: `PSR_labels_raw.csv`, baseline verdicts
+  with two false approvals, and candidate verdicts with those approvals abstained.
 - `tests/test_core.py`: restart, leakage-boundary, ordering, and missing-step checks.
-- `tests/test_evaluation.py`: 21 tests for the label adapter, scorer, and policy promotion gates.
+- `tests/test_evaluation.py`: 37 tests for the label adapter, scorer, and policy promotion gates.
+- `tests/test_evaluate_cli.py`: 3 tests for the end-to-end `evaluate` command.
 
 ## Attribution and original work
 
