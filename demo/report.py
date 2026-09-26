@@ -361,7 +361,7 @@ def build(verdicts, evidence, evaluation, cases, policies, timing, events, snaps
     if duration is None:
         duration = (max(times) + 5) if times else 10
     payload = {"recording_id": recording, "video_path": video_path, "duration": duration, "timing": timing_js,
-               "backend": snapshot["backend"] if snapshot else None, "is_mock": "mock" in kinds, "arms": arms}
+               "backend": snapshot["backend"] if snapshot else None, "arms": arms}
     page = _page(payload, arms, sorted(models), kinds, evaluation, snapshot, errors, notices)
     return page, errors, notices, "mock" in kinds
 
@@ -462,14 +462,11 @@ def _memory_html(snap):
 
 
 def _problems_html(errors, notices):
-    if not errors and not notices:
+    if not errors:
         return ""
     parts = ['<section class="problems" aria-label="Validation problems">']
-    if errors:
-        parts.append(f'<div class="errs"><h2>{len(errors)} error{"s" if len(errors) != 1 else ""} in saved records</h2><ul>'
-                     + "".join(f"<li>{_e(e)}</li>" for e in errors) + "</ul></div>")
-    if notices:
-        parts.append('<div class="notes"><h2>Notices</h2><ul>' + "".join(f"<li>{_e(n)}</li>" for n in notices) + "</ul></div>")
+    parts.append(f'<div class="errs"><h2>{len(errors)} error{"s" if len(errors) != 1 else ""} in saved records</h2><ul>'
+                 + "".join(f"<li>{_e(e)}</li>" for e in errors) + "</ul></div>")
     return "".join(parts) + "</section>"
 
 
@@ -482,22 +479,8 @@ def _font_face():
 
 
 def _page(payload, arms, models, kinds, ev, snap, errors, notices):
-    if "mock" in kinds:
-        badge = '<span class="badge mock" title="At least one record has source_kind mock">MOCK DATA</span>'
-    elif kinds:
-        badge = f'<span class="badge real" title="No mock records loaded">REAL · {_e(", ".join(sorted(kinds)))}</span>'
-    else:
-        badge = '<span class="badge none">NO DATA</span>'
-    backend = snap["backend"] if snap else None
-    backend_html = (f'<span class="dot {backend}"></span>{"Atlas" if backend == "atlas" else "Local SQLite"}'
-                    if backend else '<span class="dot"></span>unknown')
-    buttons = "".join(
-        f'<button type="button" data-arm="{arm}"{"" if arms.get(arm) else " disabled"}>{arm.title()}'
-        f'<small>{_e(arms[arm]["policy_id"]) if arms.get(arm) else "no verdicts"}</small></button>' for arm in ARMS)
     body = BODY
-    for key, value in (("{{RECORDING}}", _e(payload["recording_id"])), ("{{MODELS}}", _e(" · ".join(models) or None)),
-                       ("{{BACKEND}}", backend_html), ("{{ARM_BUTTONS}}", buttons), ("{{BADGE}}", badge),
-                       ("{{PROBLEMS}}", _problems_html(errors, notices)), ("{{EVAL_BAR}}", _evaluation_bar(ev)),
+    for key, value in (("{{PROBLEMS}}", _problems_html(errors, notices)), ("{{EVAL_BAR}}", _evaluation_bar(ev)),
                        ("{{EVAL}}", _evaluation_html(ev)), ("{{MEMORY}}", _memory_html(snap)),
                        ("{{PAYLOAD}}", _script_json(payload))):
         body = body.replace(key, value)
@@ -526,24 +509,11 @@ button{font:inherit;color:inherit}:focus-visible{outline:none;box-shadow:0 0 0 2
 .top{display:flex;align-items:center;flex-wrap:wrap;gap:12px 28px;padding:1.25rem var(--pad);background:var(--white);position:sticky;top:0;z-index:5;border-bottom:1px solid var(--stroke)}
 .brand{font-weight:700;font-size:1.2rem;display:flex;align-items:center;gap:10px;white-space:nowrap;letter-spacing:-.01em;text-transform:uppercase}
 .brand::before{content:"";width:10px;height:10px;background:var(--dark);border-radius:50%;box-shadow:0 0 0 3px var(--accent)}
-.meta{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:var(--fz-sm);min-width:0}
-.meta b{font-weight:var(--fw-400);color:var(--text-muted);margin-right:6px}
-.meta code{color:var(--text)}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--v-notdone);vertical-align:0}
 .dot.atlas{background:var(--v-correct)}.dot.local{background:var(--v-insuff)}
 .spacer{flex:1}
-.versions{display:inline-flex;gap:8px;margin-left:auto}
-.versions button{background:var(--surface-dp);border:1px solid transparent;border-radius:var(--btn-radius);padding:.55rem 1.1rem;cursor:pointer;color:var(--text-muted);display:flex;align-items:baseline;gap:8px;line-height:100%;font-size:var(--fz-sm);font-weight:var(--fw-600);transition:background-color .2s,color .2s,border-color .2s}
-.versions button small{font-family:var(--mono);font-size:10.5px;font-weight:400;opacity:.8}
-.versions button:hover{border-color:var(--accent-green)}
-.versions button[aria-pressed="true"]{background:var(--dark);color:var(--white)}
-.versions button:disabled{opacity:.4;cursor:not-allowed}
 .toggle{display:flex;align-items:center;gap:6px;font-size:var(--fz-sm);color:var(--text-muted);cursor:pointer;white-space:nowrap}
 .toggle input{accent-color:var(--dark)}
-.badge{font:600 11px/1 var(--mono);letter-spacing:.5px;padding:.6rem .9rem;border-radius:var(--btn-radius);white-space:nowrap}
-.badge.mock{color:var(--mock);background:var(--mock-fill)}
-.badge.real{color:var(--v-correct);background:var(--v-correct-fill)}
-.badge.none{color:var(--error);background:var(--v-incorrect-fill)}
 .problems{margin:1rem var(--pad) 0;padding:1rem 1.5rem;background:var(--surface-dp);border-radius:1.25rem;font-size:var(--fz-sm)}
 .problems h2{font-size:var(--fz-sm);font-weight:var(--fw-600);margin:0 0 4px}
 .problems ul{margin:0 0 4px;padding-left:18px}
@@ -556,7 +526,6 @@ button{font:inherit;color:inherit}:focus-visible{outline:none;box-shadow:0 0 0 2
 .screen video,.screen canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
 .rec-label{position:absolute;top:14px;right:14px;font:600 10.5px/1 var(--mono);letter-spacing:.5px;text-transform:uppercase;padding:.45rem .75rem;border-radius:var(--btn-radius);background:var(--white);color:var(--text);z-index:1}
 .rec-label::before{content:"\\25CF";color:var(--v-incorrect);margin-right:6px}
-.rec-label.mock{color:var(--mock);background:var(--mock-fill)}.rec-label.mock::before{color:var(--mock)}
 .card{position:absolute;left:16px;bottom:16px;width:min(560px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;background:var(--white);border-radius:var(--card-radius);padding:1.1rem 1.25rem;box-shadow:0 16px 40px rgba(0,0,0,.28);opacity:0;transform:translateY(16px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:2}
 .card.show{opacity:1;transform:none;pointer-events:auto}
 .card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}
@@ -685,17 +654,8 @@ table.m tbody th{color:var(--text-muted);font-weight:var(--fw-400)}
 BODY = """
 <header class="top">
   <div class="brand">Decision Replay</div>
-  <div class="meta">
-    <span><b>recording</b><code>{{RECORDING}}</code></span>
-    <span><b>run</b><code id="h-run">—</code></span>
-    <span><b>policy</b><code id="h-policy">—</code></span>
-    <span><b>model</b><code>{{MODELS}}</code></span>
-    <span><b>backend</b>{{BACKEND}}</span>
-  </div>
   <div class="spacer"></div>
-  <div class="versions" role="group" aria-label="Policy version">{{ARM_BUTTONS}}</div>
   <label class="toggle"><input type="checkbox" id="auto" checked> Auto-resume 4s</label>
-  {{BADGE}}
 </header>
 {{PROBLEMS}}
 <main class="main">
@@ -788,8 +748,7 @@ JS = r"""
     const t = useVideo ? video.currentTime : vt;
     useVideo = false; mockNote = note; vt = t || 0; video.hidden = true; canvas.hidden = false;
     const label = $("rec-label");
-    if (P.is_mock) { label.textContent = "MOCK placeholder · no video"; label.className = "rec-label mock"; }
-    else { label.textContent = "No video file · verdicts are real"; label.className = "rec-label"; }
+    label.textContent = "No video file"; label.className = "rec-label";
     renderTimeline();
   }
   function drawMock() {
@@ -798,8 +757,7 @@ JS = r"""
     ctx.strokeStyle = "rgba(255,255,255,0.035)"; ctx.lineWidth = 2;
     for (let x = -h; x < w; x += 40) { ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x + h, 0); ctx.stroke(); }
     ctx.textAlign = "center";
-    const heading = P.is_mock ? "MOCK" : "NO VIDEO";
-    ctx.fillStyle = P.is_mock ? "#C77DFF" : "#8A96AD"; ctx.font = "600 72px ui-monospace, Menlo, Consolas, monospace"; ctx.fillText(heading, w / 2, h * 0.22);
+    ctx.fillStyle = "#8A96AD"; ctx.font = "600 72px ui-monospace, Menlo, Consolas, monospace"; ctx.fillText("NO VIDEO", w / 2, h * 0.22);
     ctx.fillStyle = "#8A96AD"; ctx.font = "26px system-ui, sans-serif"; ctx.fillText(mockNote, w / 2, h * 0.22 + 46);
     const f = timeToFrame(vt);
     ctx.fillStyle = "#E6EAF2"; ctx.font = "34px ui-monospace, Menlo, Consolas, monospace";
@@ -839,7 +797,7 @@ JS = r"""
     const a = P.arms[arm];
     $("card-title").textContent = cp.checkpoint_id + " · " + cp.component_id;
     $("card-sub").textContent = "frame " + cp.cursor_frame + " · " + fmt(cp.t) + " · run " + a.run_id;
-    $("card-arm").textContent = arm + " · " + a.policy_id;
+    $("card-arm").textContent = a.policy_id;
     const body = $("card-body"); body.replaceChildren();
 
     const seeing = [];
@@ -888,8 +846,7 @@ JS = r"""
     v.muted = true; v.loop = true; v.autoplay = true; v.playsInline = true; v.setAttribute("muted", "");
     v.addEventListener("error", () => {
       v.remove(); media.classList.add("missing"); media.appendChild(el("div", "missing-text", c.clip_path));
-      if (c.source_kind === "mock") { label.textContent = "MOCK · no clip"; label.className = "rec-label mock"; }
-      else { label.textContent = "No clip file"; label.className = "rec-label"; }
+      label.textContent = "No clip file"; label.className = "rec-label";
     });
     v.src = c.clip_path; media.append(v, label);
     const meta = el("div");
@@ -1077,8 +1034,6 @@ JS = r"""
   function setArm(next) {
     if (!P.arms[next]) return;
     arm = next;
-    document.querySelectorAll("[data-arm]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.arm === arm)));
-    $("h-run").textContent = P.arms[arm].run_id; $("h-policy").textContent = P.arms[arm].policy_id;
     renderList(); renderTimeline();
     const cp = shown && checkpoints().find((c) => c.checkpoint_id === shown);
     if (cp) show(cp);
@@ -1120,7 +1075,6 @@ JS = r"""
     requestAnimationFrame(loop);
   }
 
-  document.querySelectorAll("[data-arm]").forEach((b) => b.addEventListener("click", () => setArm(b.dataset.arm)));
   document.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => {
     document.querySelectorAll("[data-tab]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
     document.querySelectorAll(".tabpanel").forEach((p) => { p.hidden = p.id !== "tab-" + b.dataset.tab; });

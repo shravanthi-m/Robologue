@@ -2,13 +2,13 @@
   "schema_version": 1,
   "source_kind": "mock",
   "recordings": {
-    "mock-recording": {
+    "assembly-demo": {
       "video_path": "media/main.mp4",
       "fps": 10,
       "frame_offset": 0,
       "duration_s": 184.5
     },
-    "mock-dev-recording-a": {
+    "dev-recording-a": {
       "video_path": "media/dev-03.mp4",
       "frame_map": {
         "410": 0.0,
@@ -16,7 +16,7 @@
         "470": 6.0
       }
     },
-    "mock-dev-recording-b": {
+    "dev-recording-b": {
       "video_path": "media/dev-07.mp4",
       "frame_map": {
         "120": 0.0,

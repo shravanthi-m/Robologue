@@ -236,7 +236,7 @@ Verdict colour is never the only signal. Pills also carry a text label (`CORRECT
    the matching Decisions row highlights, and Past Failures loads 1–3 muted looping clips, or shows
    "No similar past failures." A guard stops seeking from re-triggering the same checkpoint.
 3. **Controls.** Continue (Space), auto-resume after 4 s (toggle in the top bar), click ◆ or a Decisions row to jump,
-   ←/→ for the previous/next checkpoint. Deep links for the presenter: `player.html#arm=baseline&cp=mock-c2&tab=memory`.
+   ←/→ for the previous/next checkpoint. Deep links for the presenter: `player.html#cp=c2&tab=memory`.
    If the video file is missing, a labelled MOCK canvas clock stands in; missing clips show a striped "MOCK · no clip" tile.
 4. **Baseline/Candidate.** The version switcher swaps the verdict set and keeps the playhead where it is. The card
    re-renders so viewers can see baseline approve and candidate recall dev-03 and hold at the same checkpoint.

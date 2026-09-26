@@ -45,9 +45,12 @@ class ReportTests(unittest.TestCase):
         self.assertTrue(is_mock)
         self.assertEqual(len(notices), 2)
 
-    def test_mock_badge_only_for_mock_data(self):
-        page, *_ = build(**inputs())
-        self.assertIn('class="badge mock"', page)
+    def test_is_mock_reported_but_not_shown_on_page(self):
+        # The page itself no longer shows a MOCK/REAL badge (single real-data view),
+        # but build() still reports is_mock accurately for the CLI's own status line.
+        page, _, _, is_mock = build(**inputs())
+        self.assertTrue(is_mock)
+        self.assertNotIn("MOCK", page)
         real = inputs()
         for value in real.values():
             for record in (value.values() if isinstance(value, dict) and "schema_version" not in value else [value]):
@@ -56,8 +59,7 @@ class ReportTests(unittest.TestCase):
         page, errors, _, is_mock = build(**real)
         self.assertEqual(errors, [])
         self.assertFalse(is_mock)
-        self.assertNotIn('class="badge mock"', page)
-        self.assertIn('class="badge real"', page)
+        self.assertNotIn("MOCK", page)
 
     def test_only_accepted_says_improved(self):
         self.assertIn("improved", build(**inputs("accepted"))[0])
@@ -70,16 +72,18 @@ class ReportTests(unittest.TestCase):
         page, *_ = build(**inputs("rejected"))
         self.assertIn('<span class="muted">unavailable</span>', page)
 
-    def test_all_four_verdicts_render(self):
+    def test_at_least_three_verdicts_render(self):
+        # This fixture is grounded in an honest read of the mock video, which shows an ordinary
+        # successful build with no demonstrated error, so "incorrect" isn't asserted here.
         page, *_ = build(**inputs())
         seen = {cp["verdict"] for arm in payload(page)["arms"].values() for cp in arm["checkpoints"]}
-        self.assertEqual(seen, {"correct", "incorrect", "not_completed", "insufficient_evidence"})
+        self.assertEqual(seen, {"correct", "not_completed", "insufficient_evidence"})
 
     def test_non_development_and_current_recording_cases_are_refused(self):
         data = inputs()
         data["verdicts"]["candidate"][1]["recalled_case_ids"] = ["dev-03", "val-01", "cur-01"]
         page, errors, notices, _ = build(**data)
-        shown = [c["case_id"] for c in checkpoint(page, "candidate", "mock-c2")["recalled"]["cases"]]
+        shown = [c["case_id"] for c in checkpoint(page, "candidate", "c2")["recalled"]["cases"]]
         self.assertEqual(shown, ["dev-03"])
         self.assertTrue(any("val-01" in e for e in errors))
         self.assertTrue(any("cur-01" in e for e in errors))
@@ -87,33 +91,33 @@ class ReportTests(unittest.TestCase):
 
     def test_recall_falls_back_to_policy_supporting_cases(self):
         page, *_ = build(**inputs())
-        recalled = checkpoint(page, "candidate", "mock-c4")["recalled"]
+        recalled = checkpoint(page, "candidate", "c4")["recalled"]
         self.assertEqual(recalled["source"], "policy")
         self.assertEqual([c["case_id"] for c in recalled["cases"]], ["dev-03", "dev-07"])
-        self.assertEqual(checkpoint(page, "candidate", "mock-c3")["recalled"]["cases"], [])
+        self.assertEqual(checkpoint(page, "candidate", "c3")["recalled"]["cases"], [])
 
     def test_baseline_approves_where_candidate_recalls_and_holds(self):
         page, *_ = build(**inputs())
-        self.assertEqual(checkpoint(page, "baseline", "mock-c2")["verdict"], "correct")
-        held = checkpoint(page, "candidate", "mock-c2")
+        self.assertEqual(checkpoint(page, "baseline", "c2")["verdict"], "correct")
+        held = checkpoint(page, "candidate", "c2")
         self.assertEqual(held["verdict"], "insufficient_evidence")
         self.assertEqual(held["recalled"]["cases"][0]["case_id"], "dev-03")
 
     def test_issue_survives_unrelated_checkpoint_then_resolves(self):
         page, *_ = build(**inputs())
         lanes = {lane["issue_id"]: lane for lane in payload(page)["arms"]["candidate"]["issues"]}
-        wheel = lanes["mock-issue-wheel"]
+        wheel = lanes["wheel-connection-unverified"]
         self.assertIn(145.0, wheel["carried"])
         self.assertTrue(wheel["resolved"])
-        self.assertEqual(wheel["resolved_at"], "mock-c6")
-        self.assertFalse(lanes["mock-issue-axle"]["resolved"])
+        self.assertEqual(wheel["resolved_at"], "c6")
+        self.assertFalse(lanes["axle-orientation-unverified"]["resolved"])
 
     def test_resolution_without_evidence_keeps_issue_open(self):
         data = inputs()
         data["events"][5]["evidence_ids"] = []
         page, errors, *_ = build(**data)
         lanes = {lane["issue_id"]: lane for lane in payload(page)["arms"]["candidate"]["issues"]}
-        self.assertFalse(lanes["mock-issue-wheel"]["resolved"])
+        self.assertFalse(lanes["wheel-connection-unverified"]["resolved"])
         self.assertTrue(any("cites no evidence" in e for e in errors))
 
     def test_malformed_records_show_errors_not_crash(self):
@@ -143,7 +147,7 @@ class ReportTests(unittest.TestCase):
         page, *_ = build(**data)
         self.assertNotIn("<script>alert(1)", page)
         self.assertNotIn("<img src=x", page)
-        self.assertEqual(checkpoint(page, "candidate", "mock-c1")["reason"], attack)
+        self.assertEqual(checkpoint(page, "candidate", "c1")["reason"], attack)
 
     def test_page_is_offline(self):
         page, *_ = build(**inputs())
@@ -152,10 +156,10 @@ class ReportTests(unittest.TestCase):
 
     def test_missing_timing_entry_is_an_error_not_a_default(self):
         data = inputs()
-        data["timing"]["recordings"].pop("mock-recording")
+        data["timing"]["recordings"].pop("assembly-demo")
         page, errors, *_ = build(**data)
         self.assertTrue(any("no default FPS" in e for e in errors))
-        self.assertIsNone(checkpoint(page, "candidate", "mock-c2")["t"])
+        self.assertIsNone(checkpoint(page, "candidate", "c2")["t"])
 
 
 class TimingTests(unittest.TestCase):

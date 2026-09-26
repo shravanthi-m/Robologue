@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source_kind": "mock",
-  "recording_ids": ["mock-val-recording"],
+  "recording_ids": ["val-recording"],
   "baseline_policy_id": "baseline-v1",
   "candidate_policy_id": "candidate-v2",
   "decision": "rejected",

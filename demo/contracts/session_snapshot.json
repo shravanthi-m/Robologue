@@ -3,32 +3,32 @@
   "source_kind": "mock",
   "backend": "atlas",
   "session_key": {
-    "run_id": "mock-candidate",
-    "recording_id": "mock-recording",
+    "run_id": "candidate-run",
+    "recording_id": "assembly-demo",
     "policy_id": "candidate-v2"
   },
-  "last_committed_checkpoint": "mock-c6",
+  "last_committed_checkpoint": "c6",
   "open_issues": [
     {
-      "issue_id": "mock-issue-axle",
-      "since_checkpoint": "mock-c5",
+      "issue_id": "axle-orientation-unverified",
+      "since_checkpoint": "c5",
       "description": "Front axle orientation not visible."
     }
   ],
   "restart": {
     "before": {
       "process": "run-1 (stopped after mock-c3)",
-      "last_committed_checkpoint": "mock-c3",
+      "last_committed_checkpoint": "c3",
       "open_issue_ids": [
-        "mock-issue-wheel"
+        "wheel-connection-unverified"
       ],
       "verdict_count": 3
     },
     "after": {
       "process": "run-2 (resumed)",
-      "last_committed_checkpoint": "mock-c3",
+      "last_committed_checkpoint": "c3",
       "open_issue_ids": [
-        "mock-issue-wheel"
+        "wheel-connection-unverified"
       ],
       "verdict_count": 3
     }
