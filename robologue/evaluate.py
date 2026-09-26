@@ -22,9 +22,16 @@ abstention count, model calls and latency.
 VERDICTS = ("correct", "incorrect", "not_completed", "insufficient_evidence")
 
 REQUIRED_VERDICT_FIELDS = (
-    "schema_version", "source_kind", "run_id", "recording_id",
-    "checkpoint_id", "cursor_frame", "component_id", "verdict",
-    "policy_id", "model_id",
+    "schema_version",
+    "source_kind",
+    "run_id",
+    "recording_id",
+    "checkpoint_id",
+    "cursor_frame",
+    "component_id",
+    "verdict",
+    "policy_id",
+    "model_id",
 )
 
 
@@ -34,13 +41,43 @@ class EvaluationError(ValueError):
 
 def validate_verdict(verdict):
     """Consumer-side check of Interface B. Person 2 produces these; we verify."""
+    import math
+
+    if not isinstance(verdict, dict):
+        raise EvaluationError("Verdict must be an object")
     missing = [f for f in REQUIRED_VERDICT_FIELDS if f not in verdict]
     if missing:
         raise EvaluationError(f"Verdict missing fields: {missing}")
     if verdict["verdict"] not in VERDICTS:
         raise EvaluationError(f"Unknown verdict: {verdict['verdict']!r}")
-    if not isinstance(verdict["cursor_frame"], int) or verdict["cursor_frame"] < 0:
+    if verdict["schema_version"] != 1 or type(verdict["schema_version"]) is not int:
+        raise EvaluationError("Unsupported verdict schema")
+    for key in (
+        "source_kind",
+        "run_id",
+        "recording_id",
+        "checkpoint_id",
+        "component_id",
+        "policy_id",
+        "model_id",
+    ):
+        if not isinstance(verdict[key], str) or not verdict[key].strip():
+            raise EvaluationError(f"{key} must be a nonempty string")
+    if type(verdict["cursor_frame"]) is not int or verdict["cursor_frame"] < 0:
         raise EvaluationError("cursor_frame must be a nonnegative int")
+    if (
+        type(verdict.get("model_calls", 0)) is not int
+        or verdict.get("model_calls", 0) < 0
+    ):
+        raise EvaluationError("model_calls must be a nonnegative int")
+    latency = verdict.get("latency_ms", 0)
+    if (
+        isinstance(latency, bool)
+        or not isinstance(latency, (int, float))
+        or not math.isfinite(latency)
+        or latency < 0
+    ):
+        raise EvaluationError("latency_ms must be finite and nonnegative")
     return True
 
 
@@ -57,10 +94,17 @@ def match_pairs(verdicts, references):
         if key in index:
             raise EvaluationError(f"Duplicate reference for {key}")
         index[key] = ref
-    pairs, excluded = [], []
+    pairs, excluded, seen = [], [], set()
     for verdict in verdicts:
         validate_verdict(verdict)
-        key = (verdict["recording_id"], verdict["component_id"], verdict["cursor_frame"])
+        key = (
+            verdict["recording_id"],
+            verdict["component_id"],
+            verdict["cursor_frame"],
+        )
+        if key in seen:
+            raise EvaluationError(f"Duplicate verdict for {key}")
+        seen.add(key)
         ref = index.get(key)
         if ref is None:
             excluded.append(verdict["checkpoint_id"])
@@ -87,10 +131,12 @@ def score(verdicts, references, run_meta=None):
     for verdict, ref in pairs:
         model_calls += verdict.get("model_calls", 0)
         latency_ms += verdict.get("latency_ms", 0.0)
-        comp = per_component.setdefault(verdict["component_id"],
-                                        {"scorable": 0, "correct": 0, "false_correct": 0})
-        rec = per_recording.setdefault(verdict["recording_id"],
-                                       {"scorable": 0, "correct": 0, "false_correct": 0})
+        comp = per_component.setdefault(
+            verdict["component_id"], {"scorable": 0, "correct": 0, "false_correct": 0}
+        )
+        rec = per_recording.setdefault(
+            verdict["recording_id"], {"scorable": 0, "correct": 0, "false_correct": 0}
+        )
         comp["scorable"] += 1
         rec["scorable"] += 1
         label = verdict["verdict"]
@@ -116,6 +162,12 @@ def score(verdicts, references, run_meta=None):
     scorable = len(pairs)
     judged = scorable - abstentions
     report = {
+        "scored_case_keys": sorted(
+            [
+                list((v["recording_id"], v["component_id"], v["cursor_frame"]))
+                for v, _ in pairs
+            ]
+        ),
         "n_verdicts": len(verdicts),
         "n_references": len(references),
         "scorable": scorable,
@@ -123,8 +175,9 @@ def score(verdicts, references, run_meta=None):
         "excluded_checkpoint_ids": excluded,
         "state_accuracy": n_correct / scorable if scorable else None,
         "false_correct_count": false_correct,
-        "incorrect_recall": (incorrect_recalled / incorrect_total
-                             if incorrect_total else None),
+        "incorrect_recall": (
+            incorrect_recalled / incorrect_total if incorrect_total else None
+        ),
         "incorrect_reference_count": incorrect_total,
         "abstention_count": abstentions,
         "model_calls": model_calls + run_meta.get("model_calls", 0),

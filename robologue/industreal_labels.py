@@ -53,11 +53,15 @@ def load_raw_states(path):
                 if state not in REFERENCE_OF:
                     raise LabelError(f"{path}:{lineno}: state {state} not in {{-1, 0, 1}}")
             rows.append((frame, frame_name, states))
+            if frame < 0 or not states:
+                raise LabelError(f"{path}:{lineno}: require nonnegative frame and component states")
     widths = {len(states) for _, _, states in rows}
     if len(widths) > 1:
         raise LabelError(f"{path}: inconsistent component counts across rows: {sorted(widths)}")
     if not rows:
         raise LabelError(f"{path}: no data rows found")
+    if len({frame for frame, _, _ in rows}) != len(rows):
+        raise LabelError(f"{path}: duplicate checkpoint frames")
     return rows
 
 
@@ -78,7 +82,10 @@ def load_procedure_info(path):
         descriptions[idx] = entry.get("description", "")
     for entry in entries:  # prefer the install action's wording
         idx = entry.get("state_idx")
-        if idx is not None and entry.get("install"):
+        # Incorrect-install entries also have install=True in the official
+        # file. Prefer the positive install description, not error wording.
+        if (idx is not None and entry.get("install")
+                and not entry.get("description", "").lower().startswith("incorrect")):
             descriptions[idx] = entry.get("description", descriptions[idx])
     return descriptions
 

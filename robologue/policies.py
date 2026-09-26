@@ -18,8 +18,12 @@ STATUSES = ("candidate", "accepted", "rejected")
 DECISIONS = ("accept", "reject", "inconclusive")
 
 REQUIRED_POLICY_FIELDS = (
-    "schema_version", "policy_id", "parent_policy_id", "status",
-    "checklist", "supporting_dev_case_ids",
+    "schema_version",
+    "policy_id",
+    "parent_policy_id",
+    "status",
+    "checklist",
+    "supporting_dev_case_ids",
 )
 
 TEMPLATE_ID = "require-explicit-connection-evidence-v1"
@@ -42,11 +46,21 @@ def validate_policy(policy):
         raise PolicyError(f"Unknown status: {policy['status']!r}")
     if not isinstance(policy["checklist"], list) or len(policy["checklist"]) > 1:
         raise PolicyError("This release allows at most one added checklist instruction")
+    if any(
+        not isinstance(s, str) or not s.strip() or len(s) > 1500
+        for s in policy["checklist"]
+    ):
+        raise PolicyError("Checklist instructions must be bounded nonempty strings")
+    if not isinstance(policy["supporting_dev_case_ids"], list) or any(
+        not isinstance(s, str) for s in policy["supporting_dev_case_ids"]
+    ):
+        raise PolicyError("Supporting development cases must be strings")
     return True
 
 
-def propose_from_false_corrects(verdicts, references, policy_id, parent_policy_id,
-                                descriptions=None):
+def propose_from_false_corrects(
+    verdicts, references, policy_id, parent_policy_id, descriptions=None
+):
     """Deterministic proposal template triggered by false-correct dev cases.
 
     Groups development false approvals (verdict "correct" on an incorrect or
@@ -56,8 +70,11 @@ def propose_from_false_corrects(verdicts, references, policy_id, parent_policy_i
     """
     descriptions = descriptions or {}
     pairs, _ = match_pairs(verdicts, references)
-    misses = [(v, r) for v, r in pairs
-              if v["verdict"] == "correct" and r["reference"] != "correct"]
+    misses = [
+        (v, r)
+        for v, r in pairs
+        if v["verdict"] == "correct" and r["reference"] != "correct"
+    ]
     if not misses:
         return None
     by_component = {}
@@ -75,8 +92,10 @@ def propose_from_false_corrects(verdicts, references, policy_id, parent_policy_i
         "checklist": [TEMPLATE_TEXT.format(component=target, description=description)],
         "supporting_dev_case_ids": cases,
         "template_id": TEMPLATE_ID,
-        "rationale": (f"{len(by_component[target])} false-correct development case(s) "
-                      f"on {target}; rule requires explicit connection evidence."),
+        "rationale": (
+            f"{len(by_component[target])} false-correct development case(s) "
+            f"on {target}; rule requires explicit connection evidence."
+        ),
     }
     validate_policy(candidate)
     return candidate
@@ -85,22 +104,40 @@ def propose_from_false_corrects(verdicts, references, policy_id, parent_policy_i
 def decide_promotion(baseline_report, candidate_report, max_model_calls):
     """Frozen promotion rule. Returns an audit record, always with reasons."""
     reasons = []
+    if (
+        "scored_case_keys" in baseline_report
+        and "scored_case_keys" in candidate_report
+        and baseline_report["scored_case_keys"] != candidate_report["scored_case_keys"]
+    ):
+        return {
+            "decision": "reject",
+            "reasons": [
+                "Candidate and baseline must cover the identical paired cohort"
+            ],
+            "baseline": _summary(baseline_report),
+            "candidate": _summary(candidate_report),
+            "budget": max_model_calls,
+        }
     judged_b = baseline_report["judged"]
     judged_c = candidate_report["judged"]
     if judged_b == 0:
-        return {"decision": "inconclusive",
-                "reasons": ["Insufficient reference data: baseline has no judged cases"],
-                "baseline": _summary(baseline_report),
-                "candidate": _summary(candidate_report),
-                "budget": max_model_calls}
+        return {
+            "decision": "inconclusive",
+            "reasons": ["Insufficient reference data: baseline has no judged cases"],
+            "baseline": _summary(baseline_report),
+            "candidate": _summary(candidate_report),
+            "budget": max_model_calls,
+        }
     if judged_c == 0:
         # A candidate that produces nothing scorable (e.g. all-abstain) cannot
         # demonstrate improvement. This is a rejection, not inconclusive data.
-        return {"decision": "reject",
-                "reasons": ["Candidate produced no judged cases; abstention cannot win"],
-                "baseline": _summary(baseline_report),
-                "candidate": _summary(candidate_report),
-                "budget": max_model_calls}
+        return {
+            "decision": "reject",
+            "reasons": ["Candidate produced no judged cases; abstention cannot win"],
+            "baseline": _summary(baseline_report),
+            "candidate": _summary(candidate_report),
+            "budget": max_model_calls,
+        }
 
     fc_b = baseline_report["false_correct_count"]
     fc_c = candidate_report["false_correct_count"]
@@ -122,27 +159,35 @@ def decide_promotion(baseline_report, candidate_report, max_model_calls):
         reasons.append(f"State accuracy decreased ({acc_b} -> {acc_c})")
         checks.append(False)
     if calls_c <= max_model_calls:
-        reasons.append(f"Inference budget respected ({calls_c} <= {max_model_calls} calls)")
+        reasons.append(
+            f"Inference budget respected ({calls_c} <= {max_model_calls} calls)"
+        )
         checks.append(True)
     else:
-        reasons.append(f"Inference budget violated ({calls_c} > {max_model_calls} calls)")
+        reasons.append(
+            f"Inference budget violated ({calls_c} > {max_model_calls} calls)"
+        )
         checks.append(False)
 
     decision = "accept" if all(checks) else "reject"
-    return {"decision": decision,
-            "reasons": reasons,
-            "baseline": _summary(baseline_report),
-            "candidate": _summary(candidate_report),
-            "budget": max_model_calls}
+    return {
+        "decision": decision,
+        "reasons": reasons,
+        "baseline": _summary(baseline_report),
+        "candidate": _summary(candidate_report),
+        "budget": max_model_calls,
+    }
 
 
 def _summary(report):
-    return {"state_accuracy": report["state_accuracy"],
-            "false_correct_count": report["false_correct_count"],
-            "incorrect_recall": report["incorrect_recall"],
-            "abstention_count": report["abstention_count"],
-            "judged": report["judged"],
-            "model_calls": report["model_calls"]}
+    return {
+        "state_accuracy": report["state_accuracy"],
+        "false_correct_count": report["false_correct_count"],
+        "incorrect_recall": report["incorrect_recall"],
+        "abstention_count": report["abstention_count"],
+        "judged": report["judged"],
+        "model_calls": report["model_calls"],
+    }
 
 
 def finalize(candidate, decision):
