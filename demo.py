@@ -1,19 +1,25 @@
 """Three-minute demo: the robot that rewrites its own harness.
 
-Runs a fresh, fully deterministic evolution (v0 -> v1 -> v2) on a scratch
-database, then narrates what happened with the measured numbers. Same seeds
-give the same output every run.
+Runs deterministic evolution (v0 -> v1 -> v2) in an isolated run namespace
+on local storage or Atlas, then narrates the measured numbers.
 """
 from __future__ import annotations
 
-import os
-import tempfile
+import argparse
 
 import db as db_module
 import loop
+import runtime
 
 
 def _narrate(history) -> None:
+    if (len(history) < 3 or [g["version"] for g in history[:3]] != ["v0", "v1", "v2"]
+            or not all((history[g].get("mutation") or {}).get("accepted") for g in (0, 1))):
+        print("\nFINAL COMPARISON (measured, stored in the database)")
+        for g in history:
+            print(f"  {g['version']}: success {g['success_rate']:.2f}, "
+                  f"avg {g['avg_steps']} steps, {g['collisions']} collisions")
+        return
     g0, g1, g2 = history[0], history[1], history[2]
     m0, m1 = g0["mutation"], g1["mutation"]
 
@@ -71,15 +77,29 @@ def _narrate(history) -> None:
     print("failures the robot actually produced.")
 
 
-def main() -> None:
-    path = os.path.join(tempfile.mkdtemp(), "demo.sqlite")
-    db = db_module.SQLiteBackend(path)
-    db.backend_name = "sqlite:scratch (demo)"
-    print("[demo] fresh database, fixed seeds: the run below is deterministic.")
-    history = loop.run_generations(
-        db, ["pick-and-deliver", "multi-room-deliver"], [7, 8], 3)
-    _narrate(history)
+def main(argv=None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    runtime.add_arguments(parser)
+    args = parser.parse_args([] if argv is None else argv)
+    database = db_module.get_db(args.backend, env_file=args.env_file)
+    try:
+        if args.status:
+            if not args.run_id:
+                parser.error("--status requires --run-id")
+            import json
+            print(json.dumps(runtime.get_run_status(database, args.run_id), indent=2))
+            return
+        history = runtime.execute_run(
+            database, ["pick-and-deliver", "multi-room-deliver"], [7, 8], 3,
+            run_id=args.run_id, resume=args.resume,
+            limits=runtime.limits_from_args(args),
+            stop_after_episodes=args.stop_after_episodes)
+        if len(history) == 3:
+            _narrate(history)
+    finally:
+        database.close()
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    main(sys.argv[1:])

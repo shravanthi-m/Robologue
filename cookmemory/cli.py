@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import tempfile
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from .harness import replay
 from .policy import HISTORY_PATH, POLICY_PATH, load_policy, promote, propose_change, validate_change
 from .render import render
 from .store import AtlasStore, SQLiteStore
+from db import load_env_file
 
 
 def read_events(path):
@@ -24,20 +26,35 @@ def read_jsonl(path):
 
 
 def cmd_replay(args):
+    if args.env_file:
+        load_env_file(args.env_file)
     store = AtlasStore() if args.backend == "atlas" else SQLiteStore(args.db)
     policy = load_policy(args.policy) if args.policy else None
     try:
-        decisions = replay(store, args.session, read_events(args.events), args.mode, args.limit, policy)
-        out = open(args.decisions_out, "w") if args.decisions_out else None
+        decisions = replay(store, args.session, read_events(args.events), args.mode, args.limit, policy,
+                           max_events=args.max_events, max_seconds=args.max_seconds)
         try:
             for decision in decisions:
                 line = json.dumps(decision)
                 print(line)
-                if out:
-                    out.write(line + "\n")
         finally:
-            if out:
-                out.close()
+            if args.decisions_out:
+                # Export durable decisions, including earlier passes. Skip
+                # receipts are console progress, not UI decision records.
+                args.decisions_out.parent.mkdir(parents=True, exist_ok=True)
+                temporary = None
+                try:
+                    with tempfile.NamedTemporaryFile(mode="w", dir=args.decisions_out.parent,
+                                                      delete=False) as out:
+                        temporary = out.name
+                        for decision in store.decisions(args.session):
+                            out.write(json.dumps(decision) + "\n")
+                        out.flush()
+                        os.fsync(out.fileno())
+                    os.replace(temporary, args.decisions_out)
+                finally:
+                    if temporary and Path(temporary).exists():
+                        Path(temporary).unlink()
     finally:
         store.close()
 
@@ -111,6 +128,9 @@ def main():
     run.add_argument("--session", required=True)
     run.add_argument("--backend", choices=["local", "atlas"], default="local")
     run.add_argument("--db", default="work/memory.sqlite")
+    run.add_argument("--env-file", type=Path, help="Explicit ignored KEY=VALUE credentials file")
+    run.add_argument("--max-events", type=int, default=10000, help="Total unique-event budget per session")
+    run.add_argument("--max-seconds", type=float, default=300, help="Time budget for this invocation")
     run.add_argument("--mode", choices=["memory", "stateless"], default="memory")
     run.add_argument("--limit", type=int, help="Stop after this many NEW events; rerun to resume")
     run.add_argument("--decisions-out", type=Path, help="Write decisions as JSONL for the replay UI")

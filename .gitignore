@@ -5,3 +5,7 @@ work/
 *.sqlite
 demo.html
 .env
+.env.*
+!.env.example
+evolution.html
+*.egg-info/
