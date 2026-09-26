@@ -1,0 +1,4 @@
+{"event_id":"demo-1","recording_id":"synthetic-demo","timestamp":10,"observation":"A utensil used earlier is set aside; its cleaning has not been verified.","issue":{"id":"utensil-check","description":"Need evidence that the utensil was cleaned before reuse."}}
+{"event_id":"demo-2","recording_id":"synthetic-demo","timestamp":20,"observation":"The person moves a bowl to the counter.","completed_steps":["move-bowl"]}
+{"event_id":"demo-3","recording_id":"synthetic-demo","timestamp":30,"observation":"The utensil is picked up again; no new cleaning evidence is visible."}
+{"event_id":"demo-4","recording_id":"synthetic-demo","timestamp":40,"observation":"New evidence confirms the utensil has been cleaned.","resolves":["utensil-check"]}
