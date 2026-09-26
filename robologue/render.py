@@ -63,7 +63,7 @@ def render(events_path, memory_path, stateless_path=None, out_path="demo.html"):
         )
 
     page = f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>CookMemory replay</title>
+<html><head><meta charset="utf-8"><title>Robologue replay</title>
 <style>
 body {{ font-family: system-ui, sans-serif; margin: 24px; color: #1a1a1a; }}
 .banner {{ background: #fff3cd; border: 1px solid #e0c36a; padding: 10px; margin-bottom: 16px; }}
@@ -76,7 +76,7 @@ th {{ background: #f5f5f5; }}
 .issue {{ display: inline-block; background: #ffe9c9; border: 1px solid #d9a441; border-radius: 6px; padding: 2px 6px; margin: 2px; font-size: 12px; }}
 .none {{ color: #888; font-size: 12px; }}
 </style></head><body>
-<h2>CookMemory replay</h2>
+<h2>Robologue replay</h2>
 {banner}
 {toggle}
 <div id="memory"><h3>memory mode</h3><table>
