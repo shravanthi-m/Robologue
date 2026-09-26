@@ -47,7 +47,7 @@ The existing deterministic fixture is not a trained model or a real-data result.
 
 Everyone agrees on these decisions before expanding implementation:
 
-- [ ] One recipe/task family, with both normal and error examples.
+- [ ] One task family, with both normal and error examples.
 - [ ] Person 3 assigns whole recordings to development, validation, and final test.
 - [ ] One integration recording from development; no test-label debugging.
 - [ ] Fixed VLM and verifier model IDs; explicit prompt/policy versions.
@@ -279,7 +279,7 @@ because the same step can repeat. No hidden label is included in this payload.
   "status": "candidate",
   "rules": [{
     "id": "verify-prerequisite-v1",
-    "scope": "selected-recipe-and-step",
+    "scope": "selected-task-and-step",
     "trigger": "Required predecessor has no verified completion",
     "action": "Call check_prerequisite before accepting this step"
   }],
@@ -310,7 +310,7 @@ replay/order explicit. This is a target integration contract, not already implem
 | Final 30-90 min | Freeze, final evaluation, record, verify access, submit | Cut optional UI polish and extra recordings |
 
 For a five-hour deadline, begin the freeze by hour four. Four people should reduce
-integration risk, not expand scope to extra datasets, recipes, or model training.
+integration risk, not expand scope to extra datasets, tasks, or model training.
 
 ## Coordination rules
 

@@ -14,8 +14,8 @@ detector, or real-data benchmark result yet. The bundled decisions are determini
 
 ## Why CaptainCook4D?
 
-It provides real kitchen recordings, procedural annotations, error categories,
-and recipe task graphs. Some errors were deliberately induced during collection;
+It provides real procedural-activity recordings, annotations, error categories,
+and task graphs. Some errors were deliberately induced during collection;
 real footage does not imply every mistake occurred naturally. This project tests
 procedural memory, not robot motor control or demonstrated sim-to-real transfer.
 
@@ -40,7 +40,7 @@ coordinate frames, missing values, and tracking validity in the selected files.
 Device IMU motion is not a direct measure of hand or object motion.
 
 **Recommendation: keep CaptainCook4D for the current procedural-memory MVP.**
-Select one recipe with a few complete recordings and check RGB + spatial coverage.
+Select one task family with a few complete recordings and check RGB + spatial coverage.
 Use RGB plus a small motion summary if the spatial stream is usable. A lack of
 tracking is unknown evidence, not an error or proof of no motion. Pose should help
 choose when/what to inspect; it cannot independently prove successful execution.
@@ -113,7 +113,7 @@ budget_remaining:
 
 These times, rules, and budgets are illustrative, not dataset-derived findings.
 Distinguish observed actions from verified completion and attach evidence to both.
-Load prerequisites from recipe instructions/task graphs, not the held-out episode's
+Load prerequisites from task instructions/task graphs, not the held-out episode's
 error annotations. Filter context to the current task and relevant dependencies.
 
 For the quickest MVP, known step boundaries may be supplied without error labels;
@@ -404,12 +404,12 @@ One JSON object per line:
 
 `issue`, `completed_steps`, and `resolves` are optional. Times must be finite,
 nonnegative, and chronological. An event ID cannot be reused with changed content.
-Task graphs describe dependencies; do not assume every recipe has a strict linear
+Task graphs describe dependencies; do not assume every task has a strict linear
 order. The starter does not yet parse or enforce the official graphs.
 
 ## Four-person plan: five to six hours
 
-Keep one recipe/task family and one end-to-end demo. Four people let us separate
+Keep one task family and one end-to-end demo. Four people let us separate
 sensor work, harness work, evaluation, and the demo rather than expand the scope.
 
 | Owner | Workstream | Concrete handoff |

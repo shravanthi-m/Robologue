@@ -82,7 +82,7 @@ def run_evaluate(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Robologue starter: synthetic replay or CaptainCook4D label preparation")
+    parser = argparse.ArgumentParser(description="Robologue: synthetic replay, label preparation, and evaluation")
     commands = parser.add_subparsers(dest="command", required=True)
     run = commands.add_parser("replay")
     run.add_argument("events", type=Path)

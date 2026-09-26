@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "robologue"
 version = "0.1.0"
-description = "CaptainCook4D procedural-memory hackathon starter"
+description = "Robologue: a dialogue for robots - persistent procedural-memory harness"
 requires-python = ">=3.10"
 dependencies = []
 
