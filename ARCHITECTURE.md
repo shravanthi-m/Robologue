@@ -18,6 +18,17 @@ to a stored record.
 
 ## The loop
 
+Managed demo/loop entry points use the durable orchestration in
+[Person 2 runtime](docs/person2-runtime.md). It scopes every stored ID by run,
+checkpoints episodes before projecting records, reserves model quotas before
+dispatch, and recovers pending writes on resume. The low-level episode and
+legacy generation functions below remain the simulation's execution engine.
+
+Lesson text is available to proposal providers. The current robot executes
+accepted architecture modules and policies; free-text lessons do not directly
+drive its actions. Validation and generalization use separate in-memory state
+and store audit traces without changing development memory or counters.
+
 ```
 episode -> trace -> classify -> patterns -> propose -> validate -> promote
    ^                                                              |
@@ -45,7 +56,8 @@ A parallel track runs **counterfactual learning** (`evolver/counterfactual.py`):
 each failure produces a lesson (what went wrong, what would have worked, the
 inferred lesson, qualitative confidence). A lesson is `proposed` until the
 architecture actually adopts its recommendation, then `validated`. Validated
-lessons are consulted by future episodes and cited as supporting evidence.
+lessons are available to future proposal providers and cited as supporting
+evidence. The current robot executes the promoted architecture's behavior.
 
 ## Frozen contracts
 
@@ -90,7 +102,7 @@ seeds 7 and 8):
 - **v1** (ADD_VERIFIER +collision_check): 4/4 success, avg 34.5 steps.
   Validation: parent 0.33 success / 322 steps vs child 1.00 / 98 steps.
   Two counterfactual lessons validated.
-- **v2** (ADD_MODULE +spatial_memory): 4/4 success, avg 33.0 steps.
+- **v2** (ADD_MODULE +spatial_memory): 4/4 success, avg 33.8 steps with isolated validation.
   The harness re-learned the same blocked cells every episode, so it
   started persisting them.
 - **Generation 2**: no recurring patterns; the architecture stops changing
@@ -104,10 +116,10 @@ transferring (collision replans, persistent spatial memory).
 
 ```bash
 python3 -m unittest discover -s tests        # 58 tests
-python3 demo.py                              # narrated v0 -> v1 -> v2
+python3 demo.py --backend local --run-id demo-1 # narrated v0 -> v1 -> v2
 python3 -m eval.benchmark --trials 3         # reproducible benchmark report
-python3 -m eval.generalization               # frozen v2 on the held-out maze
-python3 -m viz.evolution                     # evolution.html timeline
+python3 -m eval.generalization --backend local --run-id demo-1
+python3 -m viz.evolution --backend local --run-id demo-1
 ```
 
 Set `MONGODB_URI` (and optionally `MONGODB_DATABASE`) to run against the
@@ -119,8 +131,8 @@ configured database.
 
 - This is a deterministic grid simulation, not a physical robot and not
   CaptainCook4D. No real-world robotics results are claimed.
-- The Atlas backend is implemented but was developed against local SQLite;
-  the Sandbox connection still needs a live test.
+- The Atlas backend completed live Sandbox restart demos for the simulation
+  and recording tracks; details and stored run IDs are in the Person 2 guide.
 - The classifier covers six of nine failure categories with real rules;
   localization_error, context_error, and task_decomposition_error are
   reserved with documented trigger conditions, because the current sim gives

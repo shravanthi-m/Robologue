@@ -7,6 +7,7 @@ runner so this module never imports the loop (no circular import).
 from __future__ import annotations
 
 from typing import Callable, Dict, List, Tuple
+from sim import get_task
 
 # (task_id, seed) pairs held fixed for validation.
 VAL_TASKS: List[Tuple[str, int]] = [
@@ -30,21 +31,29 @@ def _summarize(traces: List[Dict]) -> Dict:
 
 def validate(db, parent: Dict, child: Dict,
              run_episode: Callable) -> Dict:
-    """Run parent and child over VAL_TASKS with per-arch shared memory."""
+    """Cold-start each architecture, with sequential memory per environment.
+
+    Evaluation traces are audited, but cannot update developmental lessons,
+    skill counters or persistent spatial memory.
+    """
     results = {}
     for arch in (parent, child):
         traces = []
-        memory = None
+        memories = {}
         for task_id, seed in VAL_TASKS:
+            environment = get_task(task_id).environment_id
+            memory = memories.get(environment, {"blocked": set(), "visited": set()})
             trace, memory_out = run_episode(
                 db, arch, task_id, seed, memory=memory,
-                tag="validation", persist=True,
+                tag="validation", persist=False,
             )
             # spatial_memory persists across validation episodes too.
             if "spatial_memory" in arch.get("active_modules", []):
-                memory = memory_out
+                memories[environment] = {"blocked": set(memory_out["blocked"]), "visited": set()}
+            db.save("trajectories", trace)
             traces.append(trace)
-        results[arch["version_id"]] = _summarize(traces)
+        results[arch["version_id"]] = dict(_summarize(traces),
+                                           trace_ids=[t["trace_id"] for t in traces])
 
     p, c = results[parent["version_id"]], results[child["version_id"]]
     passed = bool(

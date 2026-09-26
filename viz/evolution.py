@@ -8,6 +8,8 @@ annotated with the mutations that were adopted. No server, no dashboard.
 from __future__ import annotations
 
 import os
+import argparse
+from html import escape
 
 import db as db_module
 
@@ -19,6 +21,7 @@ PAD_L, PAD_R, PAD_T, PAD_B = 60, 20, 30, 60
 
 def _latest_benchmark(db):
     reports = db.find("evaluations", {"kind": "benchmark"}, limit=100)
+    reports += db.find("evaluations", {"kind": "run"}, limit=100)
     if not reports:
         return None
     return max(reports, key=lambda r: r.get("created_at", ""))
@@ -79,12 +82,19 @@ def _panel(title, ylabel, trials_data, lo, hi, annotations, mean_color):
             f'border:1px solid #ccc;margin:12px 0">' + "".join(parts) + "</svg>")
 
 
-def main() -> None:
-    db = db_module.get_db()
+def main(argv=None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--backend", choices=("auto", "atlas", "local"), default="auto")
+    parser.add_argument("--env-file")
+    parser.add_argument("--run-id")
+    parser.add_argument("--out", default=OUT)
+    args = parser.parse_args([] if argv is None else argv)
+    db = db_module.get_db(args.backend, env_file=args.env_file, run_id=args.run_id)
     report = _latest_benchmark(db)
     if report is None:
         print("No benchmark report in evaluations. Run this first:")
         print("  python3 -m eval.benchmark --trials 3")
+        db.close()
         return
 
     trials = report["trial_reports"]
@@ -101,8 +111,8 @@ def main() -> None:
     for g in range(n_gen):
         m = trials[0]["generations"][g]["mutation"]
         if m and m["accepted"]:
-            comp = m["new_component"] or "policy change"
-            annotations.append((g, f"{m['mutation_type']} +{comp} &#8594; {m['resulting_version']}"))
+            comp = escape(str(m["new_component"] or "policy change"))
+            annotations.append((g, f"{escape(str(m['mutation_type']))} +{comp} &#8594; {escape(str(m['resulting_version']))}"))
 
     max_steps = max(v for _, vals in steps for v in vals) or 1
     html = f"""<!DOCTYPE html>
@@ -117,8 +127,8 @@ Red markers are mutations the validator accepted on evidence.</p>
 {_panel("Average steps per generation", "avg steps", steps, 0, max_steps * 1.1, [], "#0b8043")}
 <h3>Mutations</h3>
 <ul>
-{''.join(f"<li><b>{m['mutation_type']}</b> +{m['new_component'] or 'policy'}: "
-         f"{m['parent_version']} &#8594; {m['resulting_version']} "
+{''.join(f"<li><b>{escape(str(m['mutation_type']))}</b> +{escape(str(m['new_component'] or 'policy'))}: "
+         f"{escape(str(m['parent_version']))} &#8594; {escape(str(m['resulting_version']))} "
          f"(accepted={m['accepted']}, lessons validated={m.get('lessons_validated', 0)})</li>"
          for m in db.find('mutations', {}, limit=100))}
 </ul>
@@ -126,10 +136,12 @@ Red markers are mutations the validator accepted on evidence.</p>
 mutation records in the database.</p>
 </body></html>"""
 
-    with open(OUT, "w") as f:
+    with open(args.out, "w") as f:
         f.write(html)
-    print(f"[viz] wrote {OUT}")
+    db.close()
+    print(f"[viz] wrote {args.out}")
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    main(sys.argv[1:])

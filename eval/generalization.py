@@ -9,9 +9,11 @@ blocked cells reused).
 from __future__ import annotations
 
 import argparse
+import copy
 import uuid
 from datetime import datetime, timezone
 from typing import Dict, List
+from sim import get_task
 
 import architectures
 import db as db_module
@@ -28,10 +30,18 @@ def _best_architecture(db) -> Dict:
 def run_generalization(db, held_out_task: str, seeds: List[int],
                        version: str = "") -> Dict:
     arch = architectures.get_version(db, version) if version else _best_architecture(db)
+    if arch is None:
+        raise ValueError("Requested architecture version does not exist")
     traces = []
+    memories = {}
     for seed in seeds:
+        environment = get_task(held_out_task).environment_id
         trace, _memory = loop.run_episode(
-            db, arch, held_out_task, seed, tag="generalization", persist=True)
+            db, copy.deepcopy(arch), held_out_task, seed, tag="generalization", persist=False,
+            memory=memories.get(environment, {"blocked": set(), "visited": set()}))
+        if "spatial_memory" in arch.get("active_modules", []):
+            memories[environment] = {"blocked": set(_memory["blocked"]), "visited": set()}
+        db.save("trajectories", trace)
         traces.append(trace)
 
     n = len(traces)
@@ -66,10 +76,13 @@ def main() -> None:
     parser.add_argument("--seeds", default="21,22,23")
     parser.add_argument("--version", default="",
                         help="architecture version to freeze (default: latest)")
+    parser.add_argument("--backend", choices=("auto", "atlas", "local"), default="auto")
+    parser.add_argument("--env-file")
+    parser.add_argument("--run-id", help="Read architectures from this managed run")
     args = parser.parse_args()
 
     seeds = [int(s) for s in args.seeds.split(",") if s.strip()]
-    db = db_module.get_db()
+    db = db_module.get_db(args.backend, env_file=args.env_file, run_id=args.run_id)
     mutations_before = len(db.find("mutations", {}, limit=100000))
     report = run_generalization(db, args.held_out_task, seeds, args.version)
     db.save("evaluations", report)
@@ -85,6 +98,7 @@ def main() -> None:
     print(f"  mutations before={mutations_before} after={mutations_after} "
           f"(frozen: must be equal)")
     print(f"[generalization] report saved to evaluations (eval_id={report['eval_id']})")
+    db.close()
 
 
 if __name__ == "__main__":

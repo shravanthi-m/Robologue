@@ -93,6 +93,8 @@ def run_episode(db, arch: Dict, task_id: str, seed: int,
         "lessons_consulted": get_validated_lessons(db, task_id) if persist else [],
     }
     max_steps = arch.get("policies", {}).get("max_steps") or spec.max_steps
+    if isinstance(max_steps, bool) or not isinstance(max_steps, int) or not 1 <= max_steps <= 600:
+        raise ValueError("Episode step budget must be an integer between 1 and 600")
     trace.metrics["max_steps"] = max_steps
     tools = {"navigation"}
 
@@ -283,20 +285,32 @@ def run_generations(db, task_ids: List[str], seeds: List[int],
 
 
 def main() -> None:
+    import runtime
     parser = argparse.ArgumentParser(description="Recursive harness loop")
     parser.add_argument("--generations", type=int, default=3)
     parser.add_argument("--tasks", default="pick-and-deliver",
                         help="comma-separated task ids")
     parser.add_argument("--seeds", default="7,8",
                         help="comma-separated seeds")
+    runtime.add_arguments(parser)
     args = parser.parse_args()
-    database = db_module.get_db()
-    run_generations(
-        database,
-        [t.strip() for t in args.tasks.split(",")],
-        [int(s) for s in args.seeds.split(",")],
-        args.generations,
-    )
+    database = db_module.get_db(args.backend, env_file=args.env_file)
+    try:
+        if args.status:
+            if not args.run_id:
+                parser.error("--status requires --run-id")
+            import json
+            print(json.dumps(runtime.get_run_status(database, args.run_id), indent=2))
+            return
+        runtime.execute_run(
+            database, [t.strip() for t in args.tasks.split(",")],
+            [int(s) for s in args.seeds.split(",")], args.generations,
+            run_id=args.run_id, resume=args.resume,
+            limits=runtime.limits_from_args(args),
+            stop_after_episodes=args.stop_after_episodes,
+        )
+    finally:
+        database.close()
 
 
 if __name__ == "__main__":
